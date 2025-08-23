@@ -39,7 +39,7 @@ app.get('/api', (req, res) => {
 app.use('/api/roifiles', roiFilesRouter);
 
 // Statistics routes
-app.use('/api/statistics', statisticsRouter);
+app.use('/api/satistics', statisticsRouter);
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {

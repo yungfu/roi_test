@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { injectable } from 'tsyringe';
-import { StatisticsService, StatisticsQuery } from '../services/StatisticsService';
+import { StatisticsQuery, StatisticsService } from '../services/StatisticsService';
 
 @injectable()
 export class StatisticsController {
@@ -21,35 +21,6 @@ export class StatisticsController {
       if (req.query.country && typeof req.query.country === 'string') {
         query.country = req.query.country;
       }
-      if (req.query.startDate && typeof req.query.startDate === 'string') {
-        query.startDate = new Date(req.query.startDate);
-        if (isNaN(query.startDate.getTime())) {
-          res.status(400).json({
-            success: false,
-            message: 'Invalid startDate format. Please use YYYY-MM-DD format.'
-          });
-          return;
-        }
-      }
-      if (req.query.endDate && typeof req.query.endDate === 'string') {
-        query.endDate = new Date(req.query.endDate);
-        if (isNaN(query.endDate.getTime())) {
-          res.status(400).json({
-            success: false,
-            message: 'Invalid endDate format. Please use YYYY-MM-DD format.'
-          });
-          return;
-        }
-      }
-
-      // 验证日期范围
-      if (query.startDate && query.endDate && query.startDate > query.endDate) {
-        res.status(400).json({
-          success: false,
-          message: 'startDate cannot be later than endDate.'
-        });
-        return;
-      }
 
       const result = await this.statisticsService.getStatistics(query);
 
@@ -68,7 +39,7 @@ export class StatisticsController {
     }
   }
 
-  // GET /api/statistics/filters - 获取可用的筛选选项
+  // GET /api/satistics/filters - 获取可用的筛选选项
   async getFilterOptions(req: Request, res: Response): Promise<void> {
     try {
       const options = await this.statisticsService.getFilterOptions();

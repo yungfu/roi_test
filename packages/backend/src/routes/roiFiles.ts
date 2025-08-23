@@ -8,9 +8,6 @@ const roiFilesController = container.resolve(ROIFilesController);
 // GET /api/roifiles/template - 下载CSV模板
 router.get('/template', (req, res) => roiFilesController.downloadTemplate(req, res));
 
-// GET /api/roifiles/import/status - 获取导入状态
-router.get('/import/status', (req, res) => roiFilesController.getImportStatus(req, res));
-
 // POST /api/roifiles/validate - 验证CSV文件格式
 router.post('/validate', 
   roiFilesController.getUploadMiddleware(),

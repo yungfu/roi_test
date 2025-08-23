@@ -124,24 +124,4 @@ export class ROIFilesController {
       });
     }
   }
-
-  // GET /api/roifiles/import/status - 获取最近导入操作的状态（可扩展为支持异步导入）
-  async getImportStatus(req: Request, res: Response): Promise<void> {
-    try {
-      // 这里可以扩展为支持异步导入操作的状态查询
-      // 目前返回一个简单的响应表示同步导入
-      res.status(200).json({
-        success: true,
-        message: 'Import operations are processed synchronously',
-        supportAsync: false
-      });
-    } catch (error) {
-      console.error('Status check error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Internal server error during status check',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  }
 }

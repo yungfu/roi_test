@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { Chart } from '@/components/Chart'
-import { QueryProvider } from '@/contexts/queryContext'
+import { Filter } from '@/components/Filter'
+import { QueryContext, QueryProvider } from '@/contexts/queryContext'
+import { useContext, useEffect, useMemo, useState } from 'react'
 
 // Sample data for the chart
 const data = [
@@ -16,10 +17,21 @@ const data = [
 
 function HomeContent() {
   const [mounted, setMounted] = useState(false)
+  const { state, dispatch } = useContext(QueryContext)!;
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  const title = useMemo(() => {
+    return `${state.app} - 多时间维度ROI趋势`;
+  }, [state.app]);
+
+  const subtitle = useMemo(() => {
+    const dataModeText = state.dataMode === 'average' ? '7日移动平均' : '原始数据';
+    const scaleText = state.yAxisMode === 'log' ? '对数刻度' : '线性刻度';
+    return `(${dataModeText} - ${scaleText})`;
+  }, [state.dataMode, state.yAxisMode]);
 
   if (!mounted) {
     return <div>Loading...</div>
@@ -29,32 +41,16 @@ function HomeContent() {
     <div className="space-y-8">
       <div className="text-center">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          Welcome to ROI Analyze
+          {title}
         </h1>
-        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-          Analyze your return on investment with powerful insights and interactive charts.
-        </p>
+        <div className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <div>{subtitle}</div>
+          <div>数据范围：最近90天</div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-md border">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Total Investment</h3>
-          <p className="text-3xl font-bold text-blue-600">$24,108</p>
-          <p className="text-sm text-gray-500 mt-1">+12% from last month</p>
-        </div>
-        
-        <div className="bg-white p-6 rounded-lg shadow-md border">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Total Returns</h3>
-          <p className="text-3xl font-bold text-green-600">$25,840</p>
-          <p className="text-sm text-gray-500 mt-1">+8% from last month</p>
-        </div>
-        
-        <div className="bg-white p-6 rounded-lg shadow-md border">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Average ROI</h3>
-          <p className="text-3xl font-bold text-purple-600">4.97%</p>
-          <p className="text-sm text-gray-500 mt-1">+0.3% from last month</p>
-        </div>
-      </div>
+      {/* Filter组件 */}
+      <Filter />
 
       <Chart
         data={data}

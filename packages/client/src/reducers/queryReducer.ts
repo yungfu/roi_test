@@ -1,11 +1,11 @@
 // 定义状态类型
 export interface QueryState {
-  installChannel: string // 安装渠道
-  bidType: string // 出价类型
-  country: string // 国家
-  app: string // 应用
-  dataMode: 'revenue' | 'cost' | 'roi' | 'users' // 数据模式
-  yAxisMode: 'linear' | 'log' | 'percentage' // Y轴模式
+  installChannel: string; // 安装渠道
+  bidType: string; // 出价类型
+  country: string; // 国家
+  app: string; // 应用
+  dataMode: 'raw' | 'average'; // 数据模式
+  yAxisMode: 'linear' | 'log'; // Y轴模式
 }
 
 // 定义Action类型
@@ -21,16 +21,17 @@ export type QueryAction =
 
 // 初始状态
 export const initialQueryState: QueryState = {
-  installChannel: '',
-  bidType: '',
-  country: '',
-  app: '',
-  dataMode: 'revenue',
+  installChannel: 'Apple',
+  bidType: 'CPI',
+  country: '美国',
+  app: 'App-1',
+  dataMode: 'raw',
   yAxisMode: 'linear',
 }
 
 // Reducer函数
 export const queryReducer = (state: QueryState, action: QueryAction): QueryState => {
+  console.log('Dispatching action:', action);
   switch (action.type) {
     case 'SET_INSTALL_CHANNEL':
       return {

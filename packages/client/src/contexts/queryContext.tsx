@@ -5,8 +5,9 @@ import {
   QueryAction,
   queryReducer,
   QueryState
-} from '@/reducers/queryReducer'
-import React, { createContext, ReactNode, useContext, useReducer } from 'react'
+} from '@/reducers/queryReducer';
+
+import React, { createContext, ReactNode, useContext, useReducer } from 'react';
 
 // Context类型定义
 interface QueryContextType {
@@ -24,7 +25,7 @@ interface QueryContextType {
 }
 
 // 创建Context
-const QueryContext = createContext<QueryContextType | undefined>(undefined)
+export const QueryContext = createContext<QueryContextType | undefined>(undefined)
 
 // Provider组件
 interface QueryProviderProps {
@@ -154,5 +155,5 @@ export const useYAxisMode = () => {
 }
 
 // 重新导出类型以便其他文件使用
-export type { QueryAction, QueryState } from '@/reducers/queryReducer'
+export type { QueryAction, QueryState } from '@/reducers/queryReducer';
 

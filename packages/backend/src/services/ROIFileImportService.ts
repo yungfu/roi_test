@@ -107,7 +107,10 @@ export class ROIFileImportService {
             // 找到CSV中的最大日期作为截至日期
             let maxDate: Date | undefined;
             for (const row of allRows) {
-              const rowDate = new Date(row['日期']);
+              // 解析日期 - 支持 "yyyy-MM-dd(weekday)" 格式
+              const dateStr = row['日期'];
+              const dateOnly = dateStr.includes('(') ? dateStr.split('(')[0] : dateStr;
+              const rowDate = new Date(dateOnly);
               if (!isNaN(rowDate.getTime())) {
                 if (!maxDate || rowDate > maxDate) {
                   maxDate = rowDate;
@@ -133,8 +136,11 @@ export class ROIFileImportService {
   }
 
   private parseCSVRow(row: CSVRow, maxDateInCSV?: Date): ParsedCampaignData {
-    // 解析日期
-    const placementDate = new Date(row['日期']);
+    // 解析日期 - 支持 "yyyy-MM-dd(weekday)" 格式
+    const dateStr = row['日期'];
+    // 提取日期部分，去掉括号中的星期几
+    const dateOnly = dateStr.includes('(') ? dateStr.split('(')[0] : dateStr;
+    const placementDate = new Date(dateOnly);
     if (isNaN(placementDate.getTime())) {
       throw new Error(`Invalid date format: ${row['日期']}`);
     }
@@ -169,8 +175,14 @@ export class ROIFileImportService {
             if (maxDateInCSV) {
               // 计算投放日期和截至日期的间隔天数
               const daysDifference = Math.floor((maxDateInCSV.getTime() - placementDate.getTime()) / (1000 * 60 * 60 * 24));
-              // 只有当间隔天数大于等于ROI周期天数时，0 ROI才被认为是真实的
-              isReal0Roi = daysDifference >= roiField.days;
+              // 对于当日ROI，只要有数据就是真实的
+              if (roiField.days === 0) {
+                isReal0Roi = true;
+              } else {
+                // 对于非当日ROI，判断间隔天数+1是否小于等于ROI周期
+                // 例如：1日ROI需要间隔0天+1=1天 <= 1天，即投放当天和第二天都有数据
+                isReal0Roi = (daysDifference + 1) <= roiField.days;
+              }
             } else {
               // 如果没有提供最大日期，则按原逻辑处理
               isReal0Roi = true;

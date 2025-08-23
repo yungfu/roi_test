@@ -1,7 +1,4 @@
 import { DataSource } from 'typeorm';
-import { config } from 'dotenv';
-
-config();
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -15,10 +12,16 @@ export const AppDataSource = new DataSource({
   entities: [__dirname + '/../entities/*.{ts,js}'],
   migrations: [__dirname + '/../migrations/*.{ts,js}'],
   subscribers: [__dirname + '/../subscribers/*.{ts,js}'],
+  ssl: true,
   extra: {
     max: parseInt(process.env.DB_CONNECTION_POOL_SIZE || '10'),
     min: 1,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 2000,
+    connectionTimeoutMillis: 60000,    // Increased to 60 seconds for Azure
+    acquireTimeoutMillis: 60000,       // Time to wait for a connection from pool
+    createTimeoutMillis: 60000,        // Time to wait for connection creation
+    destroyTimeoutMillis: 5000,        // Time to wait for connection destruction
+    reapIntervalMillis: 1000,          // Cleanup interval
+    createRetryIntervalMillis: 200,    // Retry interval for connection creation
   },
 });

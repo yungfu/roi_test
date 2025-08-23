@@ -1,3 +1,6 @@
+import 'reflect-metadata';
+import './config/env'; // Load environment configuration first
+import './config/container'; // Import container configuration
 import app from './app';
 import { AppDataSource } from './config/database';
 
@@ -6,8 +9,7 @@ const PORT = process.env.PORT || 3001;
 async function startServer() {
   try {
     // Initialize database connection
-    // todo: create database 
-    // await AppDataSource.initialize();
+    await AppDataSource.initialize();
     console.log('Database connection established successfully');
 
     // Start server

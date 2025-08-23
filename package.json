@@ -15,7 +15,7 @@
     "start": "npm run start --workspaces",
     "lint": "npm run lint --workspaces",
     "clean": "rimraf packages/*/dist packages/*/node_modules node_modules",
-    "backend:dev": "npm run dev -w packages/backend",
+    "backend:dev": "NODE_ENV=development npm run dev -w packages/backend",
     "client:dev": "npm run dev -w packages/client",
     "backend:build": "npm run build -w packages/backend",
     "client:build": "npm run build -w packages/client"

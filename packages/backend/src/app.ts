@@ -3,12 +3,9 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import { config } from 'dotenv';
 import { container } from './config/container';
 import { roiFilesRouter } from './routes/roiFiles';
 import { statisticsRouter } from './routes/statistics';
-
-config();
 
 const app = express();
 

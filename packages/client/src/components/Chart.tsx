@@ -118,7 +118,7 @@ export function Chart({
     };
   }, [state.app, state.bidType, state.country, state.yAxisMode, state.dataMode, debouncedQuery]);
 
-  // Y轴配置 - 确保所有范围都有小刻度的非均匀分布
+  // Y轴配置 - 使用更明确的配置确保自定义刻度生效
   const yAxisProps = useMemo(() => {
     if (state.yAxisMode === 'log') {
       return {
@@ -221,9 +221,11 @@ export function Chart({
         console.log('Generated ticks:', ticks, 'Max value:', maxValue, 'Domain max:', domainMax);
         
         return {
+          type: 'number' as const,
           domain: [0, domainMax],
           ticks: ticks,
-          tickCount: ticks.length,
+          allowDataOverflow: false,
+          interval: 0, // 显示所有刻度
         };
       }
     }

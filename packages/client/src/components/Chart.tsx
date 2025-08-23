@@ -118,7 +118,7 @@ export function Chart({
     };
   }, [state.app, state.bidType, state.country, state.yAxisMode, state.dataMode, debouncedQuery]);
 
-  // Y轴配置 - 改进的刻度计算
+  // Y轴配置 - 非均匀刻度计算
   const yAxisProps = useMemo(() => {
     if (state.yAxisMode === 'log') {
       return {
@@ -127,63 +127,82 @@ export function Chart({
       };
     }
     
-    // 线性模式下，计算更好的刻度间隔
+    // 线性模式下，使用非均匀刻度分布
     if (chartData.length > 0) {
       // 收集所有ROI值
       const allValues: number[] = [];
       chartData.forEach(item => {
         ROI_DAYS.forEach(({ key }) => {
           const value = item[key];
-          if (typeof value === 'number' && !isNaN(value)) {
+          if (typeof value === 'number' && !isNaN(value) && value >= 0) {
             allValues.push(value);
           }
         });
       });
       
       if (allValues.length > 0) {
-        const minValue = Math.min(...allValues);
+        const minValue = Math.max(0, Math.min(...allValues));
         const maxValue = Math.max(...allValues);
-        const range = maxValue - minValue;
         
         // 如果范围很小，使用默认配置
-        if (range < 0.0001) {
+        if (maxValue - minValue < 0.0001) {
           return {};
         }
         
-        // 计算合适的刻度数量（建议5-8个刻度）
-        const targetTickCount = 6;
-        const rawStep = range / (targetTickCount - 1);
+        // 生成非均匀刻度：靠近0的地方密集，越往上越稀疏
+        const generateNonUniformTicks = (min: number, max: number): number[] => {
+          const ticks: number[] = [];
+          
+          // 总是从0开始
+          ticks.push(0);
+          
+          // 根据最大值确定刻度策略
+          if (max <= 1) {
+            // 小数值范围：0, 0.1, 0.2, 0.3, 0.5, 0.7, 1.0
+            const smallTicks = [0.1, 0.2, 0.3, 0.5, 0.7];
+            smallTicks.forEach(tick => {
+              if (tick <= max) ticks.push(tick);
+            });
+            if (max > 0.7) ticks.push(Math.ceil(max * 10) / 10);
+          } else if (max <= 5) {
+            // 中等范围：0, 0.2, 0.5, 1, 1.5, 2.5, 4, 5
+            const mediumTicks = [0.2, 0.5, 1, 1.5, 2.5, 4];
+            mediumTicks.forEach(tick => {
+              if (tick <= max) ticks.push(tick);
+            });
+            if (max > 4) ticks.push(Math.ceil(max));
+          } else if (max <= 20) {
+            // 较大范围：0, 0.5, 1, 2, 4, 7, 12, 20
+            const largeTicks = [0.5, 1, 2, 4, 7, 12];
+            largeTicks.forEach(tick => {
+              if (tick <= max) ticks.push(tick);
+            });
+            if (max > 12) ticks.push(Math.ceil(max));
+          } else {
+            // 很大范围：使用更稀疏的刻度
+            const veryLargeTicks = [0.5, 1, 2, 5, 10, 20, 35, 50];
+            veryLargeTicks.forEach(tick => {
+              if (tick <= max) ticks.push(tick);
+            });
+            
+            // 如果最大值超过50，添加更大的刻度
+            if (max > 50) {
+              let currentTick = 75;
+              while (currentTick <= max * 1.1) {
+                ticks.push(currentTick);
+                currentTick += 50;
+              }
+            }
+          }
+          
+          return ticks.sort((a, b) => a - b);
+        };
         
-        // 将步长调整为更好的数值（0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10等）
-        const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
-        const normalizedStep = rawStep / magnitude;
-        let niceStep;
-        
-        if (normalizedStep <= 1) {
-          niceStep = 1;
-        } else if (normalizedStep <= 2) {
-          niceStep = 2;
-        } else if (normalizedStep <= 5) {
-          niceStep = 5;
-        } else {
-          niceStep = 10;
-        }
-        
-        const step = niceStep * magnitude;
-        
-        // 计算刻度的起始和结束值，留出一些边距
-        const padding = step * 0.5;
-        const tickMin = Math.floor((minValue - padding) / step) * step;
-        const tickMax = Math.ceil((maxValue + padding) / step) * step;
-        
-        // 生成刻度数组
-        const ticks: number[] = [];
-        for (let tick = tickMin; tick <= tickMax; tick += step) {
-          ticks.push(Math.round(tick * 100000) / 100000); // 保留5位小数避免浮点误差
-        }
+        const ticks = generateNonUniformTicks(minValue, maxValue);
+        const domainMax = Math.max(maxValue * 1.05, ticks[ticks.length - 1]);
         
         return {
-          domain: [tickMin, tickMax],
+          domain: [0, domainMax],
           ticks: ticks,
           tickCount: ticks.length,
         };

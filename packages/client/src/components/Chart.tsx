@@ -118,7 +118,7 @@ export function Chart({
     };
   }, [state.app, state.bidType, state.country, state.yAxisMode, state.dataMode, debouncedQuery]);
 
-  // Y轴配置
+  // Y轴配置 - 改进的刻度计算
   const yAxisProps = useMemo(() => {
     if (state.yAxisMode === 'log') {
       return {
@@ -126,8 +126,72 @@ export function Chart({
         domain: ['dataMin', 'dataMax'],
       };
     }
+    
+    // 线性模式下，计算更好的刻度间隔
+    if (chartData.length > 0) {
+      // 收集所有ROI值
+      const allValues: number[] = [];
+      chartData.forEach(item => {
+        ROI_DAYS.forEach(({ key }) => {
+          const value = item[key];
+          if (typeof value === 'number' && !isNaN(value)) {
+            allValues.push(value);
+          }
+        });
+      });
+      
+      if (allValues.length > 0) {
+        const minValue = Math.min(...allValues);
+        const maxValue = Math.max(...allValues);
+        const range = maxValue - minValue;
+        
+        // 如果范围很小，使用默认配置
+        if (range < 0.0001) {
+          return {};
+        }
+        
+        // 计算合适的刻度数量（建议5-8个刻度）
+        const targetTickCount = 6;
+        const rawStep = range / (targetTickCount - 1);
+        
+        // 将步长调整为更好的数值（0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10等）
+        const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
+        const normalizedStep = rawStep / magnitude;
+        let niceStep;
+        
+        if (normalizedStep <= 1) {
+          niceStep = 1;
+        } else if (normalizedStep <= 2) {
+          niceStep = 2;
+        } else if (normalizedStep <= 5) {
+          niceStep = 5;
+        } else {
+          niceStep = 10;
+        }
+        
+        const step = niceStep * magnitude;
+        
+        // 计算刻度的起始和结束值，留出一些边距
+        const padding = step * 0.5;
+        const tickMin = Math.floor((minValue - padding) / step) * step;
+        const tickMax = Math.ceil((maxValue + padding) / step) * step;
+        
+        // 生成刻度数组
+        const ticks: number[] = [];
+        for (let tick = tickMin; tick <= tickMax; tick += step) {
+          ticks.push(Math.round(tick * 100000) / 100000); // 保留5位小数避免浮点误差
+        }
+        
+        return {
+          domain: [tickMin, tickMax],
+          ticks: ticks,
+          tickCount: ticks.length,
+        };
+      }
+    }
+    
     return {};
-  }, [state.yAxisMode]);
+  }, [state.yAxisMode, chartData]);
 
   // 自定义Tooltip
   const CustomTooltip = ({ active, payload, label }: any) => {

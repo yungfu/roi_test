@@ -118,7 +118,7 @@ export function Chart({
     };
   }, [state.app, state.bidType, state.country, state.yAxisMode, state.dataMode, debouncedQuery]);
 
-  // Y轴配置 - 使用更明确的配置确保自定义刻度生效
+  // Y轴配置 - 使用固定的非均匀刻度
   const yAxisProps = useMemo(() => {
     if (state.yAxisMode === 'log') {
       return {
@@ -127,7 +127,7 @@ export function Chart({
       };
     }
     
-    // 线性模式下，使用超细致的非均匀刻度分布
+    // 线性模式下，使用固定的刻度序列
     if (chartData.length > 0) {
       // 收集所有ROI值
       const allValues: number[] = [];
@@ -149,83 +149,35 @@ export function Chart({
           return {};
         }
         
-        // 生成非均匀刻度：确保底部始终有小刻度
-        const generateNonUniformTicks = (min: number, max: number): number[] => {
-          const ticks: number[] = [];
+        // 使用固定的刻度序列
+        const generateFixedTicks = (min: number, max: number): number[] => {
+          // 固定的刻度序列：0, 7, 10, 20, 30, 50, 70, 100, 200, 300, 500
+          const fixedTicksSequence = [0, 7, 10, 20, 30, 50, 70, 100, 200, 300, 500];
           
-          // 总是从0开始
-          ticks.push(0);
+          // 只保留小于等于最大值的刻度，稍微留点余量
+          const validTicks = fixedTicksSequence.filter(tick => tick <= max * 1.1);
           
-          // 无论最大值多大，都要确保底部有小刻度
-          const baseTicks = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5];
-          baseTicks.forEach(tick => {
-            if (tick < max) ticks.push(tick);
-          });
-          
-          // 根据最大值添加更多刻度
-          if (max <= 1) {
-            // 小数值范围：继续添加密集刻度
-            const smallTicks = [0.15, 0.25, 0.4, 0.6, 0.8];
-            smallTicks.forEach(tick => {
-              if (tick <= max) ticks.push(tick);
-            });
-            if (max > 0.8) ticks.push(Math.ceil(max * 10) / 10);
-          } else if (max <= 3) {
-            // 中小范围：0-1密集，1-3渐疏
-            const mediumSmallTicks = [0.7, 1, 1.2, 1.8, 2.5];
-            mediumSmallTicks.forEach(tick => {
-              if (tick <= max) ticks.push(tick);
-            });
-            if (max > 2.5) ticks.push(Math.ceil(max * 2) / 2);
-          } else if (max <= 10) {
-            // 中等范围：保持0-1密集，然后逐步增大
-            const mediumTicks = [1, 1.5, 2.5, 4, 6.5];
-            mediumTicks.forEach(tick => {
-              if (tick <= max) ticks.push(tick);
-            });
-            if (max > 6.5) ticks.push(Math.ceil(max));
-          } else if (max <= 50) {
-            // 较大范围：保持底部精度，中部适度
-            const largeTicks = [1, 2, 4, 7, 12, 18, 25, 35];
-            largeTicks.forEach(tick => {
-              if (tick <= max) ticks.push(tick);
-            });
-            if (max > 35) ticks.push(Math.ceil(max / 5) * 5);
-          } else {
-            // 很大范围：仍保持底部小刻度，大值区域使用大间隔
-            const veryLargeTicks = [1, 2, 5, 10, 20, 35, 55];
-            veryLargeTicks.forEach(tick => {
-              if (tick <= max) ticks.push(tick);
-            });
-            
-            // 动态添加大刻度
-            if (max > 55) {
-              let currentTick = 80;
-              const step = max > 200 ? 50 : 30;
-              while (currentTick <= max * 1.1) {
-                ticks.push(currentTick);
-                currentTick += step;
-              }
-            }
+          // 确保至少有0和一个大于0的刻度
+          if (validTicks.length === 1) { // 只有0
+            const nextTick = fixedTicksSequence.find(tick => tick > max);
+            if (nextTick) validTicks.push(nextTick);
           }
           
-          // 去重并排序
-          const uniqueTicks = Array.from(new Set(ticks)).sort((a, b) => a - b);
-          return uniqueTicks;
+          return validTicks;
         };
         
-        const ticks = generateNonUniformTicks(minValue, maxValue);
+        const ticks = generateFixedTicks(minValue, maxValue);
         const domainMax = Math.max(maxValue * 1.05, ticks[ticks.length - 1]);
         
         // 调试信息
-        console.log('Generated ticks:', ticks, 'Max value:', maxValue, 'Domain max:', domainMax);
+        console.log('Generated fixed ticks:', ticks, 'Max value:', maxValue);
         
         return {
           type: 'number' as const,
           domain: [0, domainMax],
           ticks: ticks,
           allowDataOverflow: false,
-          interval: 0, // 显示所有刻度
+          interval: 0,
         };
       }
     }

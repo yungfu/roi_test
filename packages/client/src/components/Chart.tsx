@@ -118,7 +118,7 @@ export function Chart({
     };
   }, [state.app, state.bidType, state.country, state.yAxisMode, state.dataMode, debouncedQuery]);
 
-  // Y轴配置 - 使用固定的非均匀刻度
+  // Y轴配置 - 等间距刻度
   const yAxisProps = useMemo(() => {
     if (state.yAxisMode === 'log') {
       return {
@@ -127,7 +127,7 @@ export function Chart({
       };
     }
     
-    // 线性模式下，使用固定的刻度序列
+    // 线性模式下，使用等间距刻度
     if (chartData.length > 0) {
       // 收集所有ROI值
       const allValues: number[] = [];
@@ -149,35 +149,59 @@ export function Chart({
           return {};
         }
         
-        // 使用固定的刻度序列
-        const generateFixedTicks = (min: number, max: number): number[] => {
-          // 固定的刻度序列：0, 7, 10, 20, 30, 50, 70, 100, 200, 300, 500
-          const fixedTicksSequence = [0, 7, 10, 20, 30, 50, 70, 100, 200, 300, 500];
+        // 使用等间距刻度，从指定序列中选择合适的刻度
+        const generateEqualSpacedTicks = (min: number, max: number) => {
+          // 候选刻度序列：7, 10, 20, 30, 50, 70, 100, 200, 300, 500
+          const candidates = [7, 10, 20, 30, 50, 70, 100, 200, 300, 500];
           
-          // 只保留小于等于最大值的刻度，稍微留点余量
-          const validTicks = fixedTicksSequence.filter(tick => tick <= max * 1.1);
+          // 选择合适的刻度
+          const validTicks = candidates.filter(tick => tick <= max * 1.1);
           
-          // 确保至少有0和一个大于0的刻度
-          if (validTicks.length === 1) { // 只有0
-            const nextTick = fixedTicksSequence.find(tick => tick > max);
+          // 确保至少有一个刻度
+          if (validTicks.length === 0) {
+            const nextTick = candidates.find(tick => tick > max);
             if (nextTick) validTicks.push(nextTick);
+            else validTicks.push(candidates[0]);
           }
           
-          return validTicks;
+          // 添加0和最大值附近的刻度
+          const finalTicks = [0, ...validTicks];
+          
+          // 计算等间距的范围，让刻度视觉上均匀分布
+          const tickCount = finalTicks.length;
+          const spacing = 50; // 每个刻度间隔50个单位
+          const domain = [(tickCount - 1) * spacing];
+          
+          // 创建位置映射
+          const positions = finalTicks.map((_, index) => index * spacing);
+          
+          return {
+            domain: [0, domain[0]],
+            ticks: positions,
+            labels: finalTicks
+          };
         };
         
-        const ticks = generateFixedTicks(minValue, maxValue);
-        const domainMax = Math.max(maxValue * 1.05, ticks[ticks.length - 1]);
+        const tickConfig = generateEqualSpacedTicks(minValue, maxValue);
         
         // 调试信息
-        console.log('Generated fixed ticks:', ticks, 'Max value:', maxValue);
+        console.log('Generated equal-spaced ticks:', {
+          labels: tickConfig.labels,
+          positions: tickConfig.ticks,
+          domain: tickConfig.domain,
+          maxValue
+        });
         
         return {
           type: 'number' as const,
-          domain: [0, domainMax],
-          ticks: ticks,
+          domain: tickConfig.domain,
+          ticks: tickConfig.ticks,
           allowDataOverflow: false,
           interval: 0,
+          tickFormatter: (value: number) => {
+            const index = tickConfig.ticks.indexOf(value);
+            return index >= 0 ? tickConfig.labels[index].toString() : '';
+          }
         };
       }
     }

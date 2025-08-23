@@ -6,6 +6,7 @@ import morgan from 'morgan';
 import { config } from 'dotenv';
 import { container } from './config/container';
 import { roiFilesRouter } from './routes/roiFiles';
+import { statisticsRouter } from './routes/statistics';
 
 config();
 
@@ -33,6 +34,9 @@ app.get('/api', (req, res) => {
 
 // ROI Files routes
 app.use('/api/roifiles', roiFilesRouter);
+
+// Statistics routes
+app.use('/api/statistics', statisticsRouter);
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {

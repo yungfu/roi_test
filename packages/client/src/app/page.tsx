@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { Chart } from '@/components/Chart'
+import { QueryProvider } from '@/contexts/queryContext'
 
 // Sample data for the chart
 const data = [
@@ -13,7 +14,7 @@ const data = [
   { name: 'Jun', roi: 5.8, investment: 3800, returns: 4020 },
 ]
 
-export default function Home() {
+function HomeContent() {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -55,34 +56,35 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-lg shadow-md border">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">ROI Trend Analysis</h2>
-        <div className="h-96">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line 
-                type="monotone" 
-                dataKey="roi" 
-                stroke="#8884d8" 
-                strokeWidth={2}
-                name="ROI (%)"
-              />
-              <Line 
-                type="monotone" 
-                dataKey="investment" 
-                stroke="#82ca9d" 
-                strokeWidth={2}
-                name="Investment ($)"
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+      <Chart
+        data={data}
+        type="line"
+        height={384}
+        title="ROI Trend Analysis"
+        lines={[
+          {
+            dataKey: "roi",
+            stroke: "#8884d8",
+            name: "ROI (%)",
+            strokeWidth: 2
+          },
+          {
+            dataKey: "investment",
+            stroke: "#82ca9d",
+            name: "Investment ($)",
+            strokeWidth: 2
+          }
+        ]}
+        xAxisKey="name"
+      />
     </div>
+  )
+}
+
+export default function Home() {
+  return (
+    <QueryProvider>
+      <HomeContent />
+    </QueryProvider>
   )
 }

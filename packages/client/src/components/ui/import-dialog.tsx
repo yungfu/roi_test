@@ -11,7 +11,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Upload } from "lucide-react"
+import { Upload, Loader2, CheckCircle, AlertCircle } from "lucide-react"
+import { importService, ImportResponse } from "@/services/importService"
 
 interface ImportDialogProps {
   children: React.ReactNode
@@ -20,19 +21,100 @@ interface ImportDialogProps {
 export function ImportDialog({ children }: ImportDialogProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [importResult, setImportResult] = useState<ImportResponse | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     setSelectedFile(file || null)
+    // 清除之前的结果和错误
+    setImportResult(null)
+    setErrorMessage(null)
   }
 
-  const handleImport = () => {
-    if (selectedFile) {
-      // 这里添加实际的导入逻辑
-      console.log('导入文件:', selectedFile.name)
+  const handleImport = async () => {
+    if (!selectedFile) return
+
+    setIsLoading(true)
+    setErrorMessage(null)
+    setImportResult(null)
+
+    try {
+      console.log('开始导入文件:', selectedFile.name)
+      const result = await importService.importFile(selectedFile)
+      
+      setImportResult(result)
+      
+      if (result.success) {
+        console.log('导入成功:', result.message)
+        // 成功后延迟关闭对话框
+        setTimeout(() => {
+          setIsOpen(false)
+          setSelectedFile(null)
+          setImportResult(null)
+        }, 2000)
+      } else {
+        console.error('导入失败:', result.message)
+      }
+    } catch (error) {
+      console.error('导入过程中发生错误:', error)
+      setErrorMessage(error instanceof Error ? error.message : '导入失败')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleClose = () => {
+    if (!isLoading) {
       setIsOpen(false)
       setSelectedFile(null)
+      setImportResult(null)
+      setErrorMessage(null)
     }
+  }
+
+  const renderImportStatus = () => {
+    if (importResult) {
+      return (
+        <div className={`flex items-center p-3 rounded-lg ${
+          importResult.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+        }`}>
+          {importResult.success ? (
+            <CheckCircle className="h-5 w-5 mr-2" />
+          ) : (
+            <AlertCircle className="h-5 w-5 mr-2" />
+          )}
+          <div>
+            <p className="font-medium">{importResult.message}</p>
+            {importResult.data && importResult.success && (
+              <p className="text-sm">已导入 {importResult.data.importedCount} 条记录</p>
+            )}
+            {importResult.data?.errors && importResult.data.errors.length > 0 && (
+              <div className="mt-2">
+                <p className="text-sm font-medium">错误详情:</p>
+                <ul className="text-xs list-disc list-inside">
+                  {importResult.data.errors.map((error, index) => (
+                    <li key={index}>{error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      )
+    }
+
+    if (errorMessage) {
+      return (
+        <div className="flex items-center p-3 bg-red-50 text-red-700 rounded-lg">
+          <AlertCircle className="h-5 w-5 mr-2" />
+          <p>{errorMessage}</p>
+        </div>
+      )
+    }
+
+    return null
   }
 
   return (
@@ -63,6 +145,7 @@ export function ImportDialog({ children }: ImportDialogProps) {
                     accept=".csv,.xlsx,.xls"
                     className="sr-only"
                     onChange={handleFileChange}
+                    disabled={isLoading}
                   />
                 </label>
                 <p className="mt-2 text-xs text-gray-500">
@@ -79,25 +162,35 @@ export function ImportDialog({ children }: ImportDialogProps) {
                 <button
                   onClick={() => setSelectedFile(null)}
                   className="text-gray-400 hover:text-gray-600"
+                  disabled={isLoading}
                 >
                   ×
                 </button>
               </div>
             )}
+            {renderImportStatus()}
           </div>
         </div>
         <div className="flex justify-end space-x-2">
           <Button
             variant="outline"
-            onClick={() => setIsOpen(false)}
+            onClick={handleClose}
+            disabled={isLoading}
           >
-            取消
+            {importResult?.success ? '完成' : '取消'}
           </Button>
           <Button
             onClick={handleImport}
-            disabled={!selectedFile}
+            disabled={!selectedFile || isLoading}
           >
-            导入
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                导入中...
+              </>
+            ) : (
+              '导入'
+            )}
           </Button>
         </div>
       </DialogContent>

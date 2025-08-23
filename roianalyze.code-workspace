@@ -1,0 +1,60 @@
+{
+    "folders": [
+        {
+            "name": "Root",
+            "path": "."
+        },
+        {
+            "name": "Backend",
+            "path": "./packages/backend"
+        },
+        {
+            "name": "Client",
+            "path": "./packages/client"
+        }
+    ],
+    "settings": {
+        "typescript.preferences.importModuleSpecifier": "relative",
+        "typescript.suggest.autoImports": true,
+        "typescript.updateImportsOnFileMove.enabled": "always",
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+        },
+        "files.exclude": {
+            "**/node_modules": true,
+            "**/dist": true,
+            "**/.next": true,
+            "**/out": true
+        },
+        "search.exclude": {
+            "**/node_modules": true,
+            "**/dist": true,
+            "**/.next": true,
+            "**/out": true,
+            "**/package-lock.json": true
+        },
+        "debug.allowBreakpointsEverywhere": true,
+        "debug.inlineValues": "on",
+        "debug.openDebug": "openOnDebugBreak",
+        "debug.showInStatusBar": "always",
+        "typescript.enablePromptUseWorkspaceTsdk": true,
+        "eslint.workingDirectories": [
+            "./packages/backend",
+            "./packages/client"
+        ],
+        "typescript.preferences.includePackageJsonAutoImports": "on"
+    },
+    "extensions": {
+        "recommendations": [
+            "ms-vscode.vscode-typescript-next",
+            "bradlc.vscode-tailwindcss",
+            "ms-vscode.vscode-json",
+            "esbenp.prettier-vscode",
+            "dbaeumer.vscode-eslint",
+            "ms-vscode.node-debug2",
+            "formulahendry.auto-rename-tag",
+            "christian-kohler.path-intellisense",
+            "rangav.vscode-thunder-client"
+        ]
+    }
+}

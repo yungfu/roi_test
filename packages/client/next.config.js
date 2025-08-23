@@ -3,14 +3,29 @@ const nextConfig = {
   experimental: {
     appDir: true,
   },
-  // Enable CSR mode
-  output: 'standalone',
+  // Enable static export for production deployment
+  output: 'export',
+  // Disable image optimization for static export
+  images: {
+    unoptimized: true,
+  },
   // API configuration
   async rewrites() {
+    // 生产环境中，前端静态文件和后端API在同一服务器同一端口
+    // 通过服务器路由配置，不需要重写 API 路径
+    if (process.env.NODE_ENV === 'production') {
+      console.log('Production mode: Using same server for frontend and backend');
+      return []; // 生产环境不需要 rewrites
+    }
+    
+    // 开发环境仍然需要代理到后端服务
+    const devApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    console.log(`Development mode: API URL: ${devApiUrl}`);
+    
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:3001/api/:path*',
+        destination: `${devApiUrl}/api/:path*`,
       },
     ];
   },

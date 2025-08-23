@@ -156,6 +156,29 @@ export class CampaignRepository {
   }
 
   /**
+   * 批量创建活动 - 提高导入效率
+   */
+  async createMany(campaignDataList: Partial<Campaign>[]): Promise<Campaign[]> {
+    if (!campaignDataList || campaignDataList.length === 0) {
+      return [];
+    }
+
+    const campaigns = this.repository.create(campaignDataList);
+    return this.repository.save(campaigns);
+  }
+
+  /**
+   * 批量插入活动 - 使用 INSERT 语句，更高效
+   */
+  async bulkInsert(campaignDataList: Partial<Campaign>[]): Promise<{ identifiers: any[]; generatedMaps: any[] }> {
+    if (!campaignDataList || campaignDataList.length === 0) {
+      return { identifiers: [], generatedMaps: [] };
+    }
+
+    return this.repository.insert(campaignDataList);
+  }
+
+  /**
    * 更新活动信息
    */
   async update(id: string, campaignData: Partial<Campaign>): Promise<Campaign | null> {

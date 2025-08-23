@@ -1,12 +1,9 @@
-import { injectable } from 'tsyringe';
 import csv from 'csv-parser';
 import { Readable } from 'stream';
+import { injectable } from 'tsyringe';
 import { AppService } from './AppService';
 import { CampaignService } from './CampaignService';
 import { ROIDataService } from './ROIDataService';
-import { App } from '../entities/App';
-import { Campaign } from '../entities/Campaign';
-import { ROIData } from '../entities/ROIData';
 
 interface CSVRow {
   '日期': string;
@@ -100,7 +97,13 @@ export class ROIFileImportService {
       stream
         .pipe(csv())
         .on('data', (row: CSVRow) => {
-          allRows.push(row);
+          // 清理列名中的不可见字符
+          const cleanedRow: CSVRow = {} as CSVRow;
+          for (const [key, value] of Object.entries(row)) {
+            const cleanedKey = key.replace(/^[\s\uFEFF\xA0\u200B-\u200D\u2060]+|[\s\uFEFF\xA0\u200B-\u200D\u2060]+$/g, '');
+            (cleanedRow as any)[cleanedKey] = value;
+          }
+          allRows.push(cleanedRow);
         })
         .on('end', () => {
           try {
@@ -268,7 +271,10 @@ export class ROIFileImportService {
         '当日ROI', '1日ROI', '3日ROI', '7日ROI', '14日ROI', '30日ROI', '60日ROI', '90日ROI'
       ];
 
-      const actualColumns = Object.keys(firstRow);
+      // 获取实际列名并清理头尾的隐藏特殊字符
+      const actualColumns = Object.keys(firstRow).map(col => 
+        col.replace(/^[\s\uFEFF\xA0\u200B-\u200D\u2060]+|[\s\uFEFF\xA0\u200B-\u200D\u2060]+$/g, '')
+      );
       
       for (const requiredCol of requiredColumns) {
         if (!actualColumns.includes(requiredCol)) {

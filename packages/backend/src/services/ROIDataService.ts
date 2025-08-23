@@ -1,7 +1,7 @@
 import { injectable } from 'tsyringe';
-import { ROIDataRepository } from '../repositories/ROIDataRepository';
-import { CampaignRepository } from '../repositories/CampaignRepository';
 import { ROIData } from '../entities/ROIData';
+import { CampaignRepository } from '../repositories/CampaignRepository';
+import { ROIDataRepository } from '../repositories/ROIDataRepository';
 
 @injectable()
 export class ROIDataService {
@@ -69,38 +69,66 @@ export class ROIDataService {
     });
   }
 
-  async createManyROIData(roiDataList: {
+  /**
+   * 批量插入ROI数据 - 使用 INSERT 语句，更高效，适用于大量数据导入
+   * 注意：此方法不会返回完整的实体对象，仅返回插入结果
+   */
+  async bulkInsertROIData(roiDataList: {
     daysPeriod: number;
     roiValue: number;
     isReal0Roi?: boolean;
     campaignId: string;
-  }[]): Promise<ROIData[]> {
-    // Validate all campaigns exist
-    const campaignIds = [...new Set(roiDataList.map(roi => roi.campaignId))];
-    for (const campaignId of campaignIds) {
-      const campaign = await this.campaignRepository.findById(campaignId);
-      if (!campaign) {
-        throw new Error(`Campaign not found: ${campaignId}`);
-      }
+  }[]): Promise<{
+    success: boolean;
+    insertedCount: number;
+    errors: string[];
+  }> {
+    if (!roiDataList || roiDataList.length === 0) {
+      return {
+        success: true,
+        insertedCount: 0,
+        errors: []
+      };
     }
 
-    // Check for duplicate entries
-    for (const roiData of roiDataList) {
-      const existingROI = await this.roiDataRepository.findByCampaignIdAndPeriod(
-        roiData.campaignId, 
-        roiData.daysPeriod
-      );
-      if (existingROI) {
-        throw new Error(`ROI data already exists for campaign ${roiData.campaignId} and period ${roiData.daysPeriod}`);
+    const errors: string[] = [];
+    
+    try {
+      // 处理数据并设置默认值
+      const processedData = roiDataList.map(roi => ({
+        daysPeriod: roi.daysPeriod,
+        roiValue: roi.roiValue,
+        isReal0Roi: roi.isReal0Roi || false,
+        campaignId: roi.campaignId
+      }));
+
+      // 使用批量插入
+      const result = await this.roiDataRepository.bulkInsert(processedData);
+      
+      return {
+        success: true,
+        insertedCount: result.identifiers.length,
+        errors: []
+      };
+
+    } catch (error) {
+      // 处理唯一约束冲突等错误
+      if (error instanceof Error) {
+        if (error.message.includes('duplicate key') || error.message.includes('unique constraint')) {
+          errors.push('Some ROI data already exists for the given campaign and period combinations');
+        } else {
+          errors.push(`Database error: ${error.message}`);
+        }
+      } else {
+        errors.push('Unknown error occurred during bulk insert');
       }
+
+      return {
+        success: false,
+        insertedCount: 0,
+        errors
+      };
     }
-
-    const processedData = roiDataList.map(roi => ({
-      ...roi,
-      isReal0Roi: roi.isReal0Roi || false
-    }));
-
-    return this.roiDataRepository.createMany(processedData);
   }
 
   async updateROIData(id: string, roiData: Partial<ROIData>): Promise<ROIData | null> {
@@ -177,4 +205,5 @@ export class ROIDataService {
   async getAppAverageROITrend(appId: string) {
     return this.roiDataRepository.getAppAverageROITrend(appId);
   }
+  
 }

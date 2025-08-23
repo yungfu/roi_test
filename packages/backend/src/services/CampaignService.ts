@@ -1,7 +1,7 @@
 import { injectable } from 'tsyringe';
-import { CampaignRepository } from '../repositories/CampaignRepository';
-import { AppRepository } from '../repositories/AppRepository';
 import { Campaign } from '../entities/Campaign';
+import { AppRepository } from '../repositories/AppRepository';
+import { CampaignRepository } from '../repositories/CampaignRepository';
 
 @injectable()
 export class CampaignService {
@@ -60,6 +60,49 @@ export class CampaignService {
     }
 
     return this.campaignRepository.create(campaignData);
+  }
+
+  /**
+   * 批量创建活动 - 提高导入效率
+   */
+  async createCampaigns(campaignDataList: {
+    placementDate: Date;
+    bidType: string;
+    installCount: number;
+    country: string;
+    appId: string;
+  }[]): Promise<Campaign[]> {
+    if (!campaignDataList || campaignDataList.length === 0) {
+      return [];
+    }
+
+    return this.campaignRepository.createMany(campaignDataList);
+  }
+
+  /**
+   * 批量插入活动 - 使用 INSERT 语句，不返回完整实体
+   */
+  async bulkInsertCampaigns(campaignDataList: {
+    placementDate: Date;
+    bidType: string;
+    installCount: number;
+    country: string;
+    appId: string;
+  }[]): Promise<{ identifiers: any[]; generatedMaps: any[] }> {
+    if (!campaignDataList || campaignDataList.length === 0) {
+      return { identifiers: [], generatedMaps: [] };
+    }
+
+    // 验证所有app是否存在
+    const uniqueAppIds = [...new Set(campaignDataList.map(data => data.appId))];
+    for (const appId of uniqueAppIds) {
+      const app = await this.appRepository.findById(appId);
+      if (!app) {
+        throw new Error(`App not found: ${appId}`);
+      }
+    }
+
+    return this.campaignRepository.bulkInsert(campaignDataList);
   }
 
   async updateCampaign(id: string, campaignData: Partial<Campaign>): Promise<Campaign | null> {

@@ -125,6 +125,17 @@ export class ROIDataRepository {
   }
 
   /**
+   * 批量插入ROI数据 - 使用 INSERT 语句，更高效
+   */
+  async bulkInsert(roiDataList: Partial<ROIData>[]): Promise<{ identifiers: any[]; generatedMaps: any[] }> {
+    if (!roiDataList || roiDataList.length === 0) {
+      return { identifiers: [], generatedMaps: [] };
+    }
+    
+    return this.repository.insert(roiDataList);
+  }
+
+  /**
    * 更新ROI数据
    */
   async update(id: string, roiData: Partial<ROIData>): Promise<ROIData | null> {

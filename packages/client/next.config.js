@@ -1,14 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    appDir: true,
-  },
-  // Enable static export for production deployment
-  output: 'export',
-  // Disable image optimization for static export
-  images: {
-    unoptimized: true,
-  },
+  // Only enable static export for production deployment
+  ...(process.env.NODE_ENV === 'production' && {
+    output: 'export',
+    images: {
+      unoptimized: true,
+    },
+  }),
+  
   // API configuration
   async rewrites() {
     // 生产环境中，前端静态文件和后端API在同一服务器同一端口

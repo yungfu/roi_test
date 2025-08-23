@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import { config } from 'dotenv';
 import { container } from './config/container';
+import { roiFilesRouter } from './routes/roiFiles';
 
 config();
 
@@ -25,10 +26,13 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// API routes will be added here
+// API routes
 app.get('/api', (req, res) => {
   res.json({ message: 'ROI Analyze API Server' });
 });
+
+// ROI Files routes
+app.use('/api/roifiles', roiFilesRouter);
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {

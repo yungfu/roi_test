@@ -12,6 +12,10 @@ import { ROIDataRepository } from '../repositories/ROIDataRepository';
 import { AppService } from '../services/AppService';
 import { CampaignService } from '../services/CampaignService';
 import { ROIDataService } from '../services/ROIDataService';
+import { ROIFileImportService } from '../services/ROIFileImportService';
+
+// Controllers
+import { ROIFilesController } from '../controllers/ROIFilesController';
 
 // Register DataSource
 container.registerInstance<DataSource>('DataSource', AppDataSource);
@@ -25,5 +29,9 @@ container.registerSingleton<ROIDataRepository>(ROIDataRepository);
 container.registerSingleton<AppService>(AppService);
 container.registerSingleton<CampaignService>(CampaignService);
 container.registerSingleton<ROIDataService>(ROIDataService);
+container.registerSingleton<ROIFileImportService>(ROIFileImportService);
+
+// Register Controllers
+container.registerSingleton<ROIFilesController>(ROIFilesController);
 
 export { container };

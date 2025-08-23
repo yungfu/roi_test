@@ -118,7 +118,7 @@ export function Chart({
     };
   }, [state.app, state.bidType, state.country, state.yAxisMode, state.dataMode, debouncedQuery]);
 
-  // Y轴配置 - 非均匀刻度计算
+  // Y轴配置 - 超细致非均匀刻度计算
   const yAxisProps = useMemo(() => {
     if (state.yAxisMode === 'log') {
       return {
@@ -127,7 +127,7 @@ export function Chart({
       };
     }
     
-    // 线性模式下，使用非均匀刻度分布
+    // 线性模式下，使用超细致的非均匀刻度分布
     if (chartData.length > 0) {
       // 收集所有ROI值
       const allValues: number[] = [];
@@ -149,48 +149,62 @@ export function Chart({
           return {};
         }
         
-        // 生成非均匀刻度：靠近0的地方密集，越往上越稀疏
+        // 生成非均匀刻度：底部超密集，逐渐稀疏
         const generateNonUniformTicks = (min: number, max: number): number[] => {
           const ticks: number[] = [];
           
           // 总是从0开始
           ticks.push(0);
           
-          // 根据最大值确定刻度策略
-          if (max <= 1) {
-            // 小数值范围：0, 0.1, 0.2, 0.3, 0.5, 0.7, 1.0
-            const smallTicks = [0.1, 0.2, 0.3, 0.5, 0.7];
+          // 根据最大值确定刻度策略，底部使用更小的刻度
+          if (max <= 0.5) {
+            // 超小数值范围：0, 0.02, 0.05, 0.08, 0.12, 0.18, 0.25, 0.35, 0.5
+            const ultraSmallTicks = [0.02, 0.05, 0.08, 0.12, 0.18, 0.25, 0.35];
+            ultraSmallTicks.forEach(tick => {
+              if (tick <= max) ticks.push(tick);
+            });
+            if (max > 0.35) ticks.push(Math.ceil(max * 20) / 20); // 0.05精度
+          } else if (max <= 1) {
+            // 小数值范围：0, 0.05, 0.1, 0.15, 0.25, 0.4, 0.6, 0.8, 1.0
+            const smallTicks = [0.05, 0.1, 0.15, 0.25, 0.4, 0.6, 0.8];
             smallTicks.forEach(tick => {
               if (tick <= max) ticks.push(tick);
             });
-            if (max > 0.7) ticks.push(Math.ceil(max * 10) / 10);
-          } else if (max <= 5) {
-            // 中等范围：0, 0.2, 0.5, 1, 1.5, 2.5, 4, 5
-            const mediumTicks = [0.2, 0.5, 1, 1.5, 2.5, 4];
+            if (max > 0.8) ticks.push(Math.ceil(max * 10) / 10);
+          } else if (max <= 3) {
+            // 中小范围：0, 0.1, 0.2, 0.4, 0.7, 1.2, 1.8, 2.5, 3
+            const mediumSmallTicks = [0.1, 0.2, 0.4, 0.7, 1.2, 1.8, 2.5];
+            mediumSmallTicks.forEach(tick => {
+              if (tick <= max) ticks.push(tick);
+            });
+            if (max > 2.5) ticks.push(Math.ceil(max * 2) / 2); // 0.5精度
+          } else if (max <= 10) {
+            // 中等范围：0, 0.2, 0.5, 1, 1.5, 2.5, 4, 6.5, 10
+            const mediumTicks = [0.2, 0.5, 1, 1.5, 2.5, 4, 6.5];
             mediumTicks.forEach(tick => {
               if (tick <= max) ticks.push(tick);
             });
-            if (max > 4) ticks.push(Math.ceil(max));
-          } else if (max <= 20) {
-            // 较大范围：0, 0.5, 1, 2, 4, 7, 12, 20
-            const largeTicks = [0.5, 1, 2, 4, 7, 12];
+            if (max > 6.5) ticks.push(Math.ceil(max));
+          } else if (max <= 30) {
+            // 较大范围：0, 0.5, 1, 2, 4, 7, 12, 18, 25, 30
+            const largeTicks = [0.5, 1, 2, 4, 7, 12, 18, 25];
             largeTicks.forEach(tick => {
               if (tick <= max) ticks.push(tick);
             });
-            if (max > 12) ticks.push(Math.ceil(max));
+            if (max > 25) ticks.push(Math.ceil(max / 5) * 5); // 5的倍数
           } else {
-            // 很大范围：使用更稀疏的刻度
-            const veryLargeTicks = [0.5, 1, 2, 5, 10, 20, 35, 50];
+            // 很大范围：0, 1, 2, 5, 10, 20, 35, 55, 80+
+            const veryLargeTicks = [1, 2, 5, 10, 20, 35, 55];
             veryLargeTicks.forEach(tick => {
               if (tick <= max) ticks.push(tick);
             });
             
-            // 如果最大值超过50，添加更大的刻度
-            if (max > 50) {
-              let currentTick = 75;
+            // 如果最大值超过55，添加更大的刻度
+            if (max > 55) {
+              let currentTick = 80;
               while (currentTick <= max * 1.1) {
                 ticks.push(currentTick);
-                currentTick += 50;
+                currentTick += 30; // 30的倍数递增
               }
             }
           }

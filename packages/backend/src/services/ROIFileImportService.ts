@@ -94,20 +94,37 @@ export class ROIFileImportService {
   private async parseCSV(fileBuffer: Buffer): Promise<ParsedCampaignData[]> {
     return new Promise((resolve, reject) => {
       const results: ParsedCampaignData[] = [];
+      const allRows: CSVRow[] = [];
       const stream = Readable.from(fileBuffer);
 
       stream
         .pipe(csv())
         .on('data', (row: CSVRow) => {
+          allRows.push(row);
+        })
+        .on('end', () => {
           try {
-            const parsedRow = this.parseCSVRow(row);
-            results.push(parsedRow);
+            // 找到CSV中的最大日期作为截至日期
+            let maxDate: Date | undefined;
+            for (const row of allRows) {
+              const rowDate = new Date(row['日期']);
+              if (!isNaN(rowDate.getTime())) {
+                if (!maxDate || rowDate > maxDate) {
+                  maxDate = rowDate;
+                }
+              }
+            }
+
+            // 解析所有行
+            for (const row of allRows) {
+              const parsedRow = this.parseCSVRow(row, maxDate);
+              results.push(parsedRow);
+            }
+
+            resolve(results);
           } catch (error) {
             reject(error);
           }
-        })
-        .on('end', () => {
-          resolve(results);
         })
         .on('error', (error: Error) => {
           reject(error);
@@ -115,7 +132,7 @@ export class ROIFileImportService {
     });
   }
 
-  private parseCSVRow(row: CSVRow): ParsedCampaignData {
+  private parseCSVRow(row: CSVRow, maxDateInCSV?: Date): ParsedCampaignData {
     // 解析日期
     const placementDate = new Date(row['日期']);
     if (isNaN(placementDate.getTime())) {
@@ -146,10 +163,24 @@ export class ROIFileImportService {
       if (roiValueStr && roiValueStr.trim() !== '') {
         const roiValue = parseFloat(roiValueStr);
         if (!isNaN(roiValue)) {
+          // 计算isReal0Roi：考虑投放日期和截至日期的间隔
+          let isReal0Roi = false;
+          if (roiValue === 0) {
+            if (maxDateInCSV) {
+              // 计算投放日期和截至日期的间隔天数
+              const daysDifference = Math.floor((maxDateInCSV.getTime() - placementDate.getTime()) / (1000 * 60 * 60 * 24));
+              // 只有当间隔天数大于等于ROI周期天数时，0 ROI才被认为是真实的
+              isReal0Roi = daysDifference >= roiField.days;
+            } else {
+              // 如果没有提供最大日期，则按原逻辑处理
+              isReal0Roi = true;
+            }
+          }
+
           roiData.push({
             daysPeriod: roiField.days,
             roiValue: roiValue,
-            isReal0Roi: roiValue === 0
+            isReal0Roi: isReal0Roi
           });
         }
       }

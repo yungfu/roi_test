@@ -47,11 +47,20 @@ class ImportService {
     const formData = new FormData();
     formData.append('file', file);
 
+    // 创建AbortController来处理超时
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 600000); // 5分钟超时
+
     try {
       const response = await fetch(`${this.apiBaseUrl}/roifiles/import`, {
         method: 'POST',
         body: formData,
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -59,7 +68,13 @@ class ImportService {
 
       return await response.json();
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error('File import failed:', error);
+      
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('文件导入超时，但后台仍在处理中，请稍后检查结果');
+      }
+      
       throw new Error('文件导入失败，请检查网络连接或文件格式');
     }
   }

@@ -1,9 +1,8 @@
-import 'reflect-metadata';
-import express from 'express';
 import cors from 'cors';
+import express from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import { container } from './config/container';
+import 'reflect-metadata';
 import { roiFilesRouter } from './routes/roiFiles';
 import { statisticsRouter } from './routes/statistics';
 
@@ -18,6 +17,13 @@ app.use(cors({
 app.use(morgan('combined'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// 增加请求超时设置
+app.use('/api/roifiles/import', (req, res, next) => {
+  req.setTimeout(600000); // 5分钟超时
+  res.setTimeout(600000);
+  next();
+});
 
 // Health check endpoint
 app.get('/health', (req, res) => {

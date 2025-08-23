@@ -52,7 +52,12 @@ export class ROIFileImportService {
     private appService: AppService,
     private campaignService: CampaignService,
     private roiDataService: ROIDataService
-  ) {}
+  ) { }
+
+  // 休眠函数，用于避免数据库连接频率限制
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
 
   async importFromCSV(fileBuffer: Buffer): Promise<ImportResult> {
     const result: ImportResult = {
@@ -71,12 +76,23 @@ export class ROIFileImportService {
       const parsedData = await this.parseCSV(fileBuffer);
       result.totalRows = parsedData.length;
 
-      for (const rowData of parsedData) {
-        try {
-          await this.importSingleRow(rowData, result.summary);
-          result.successfulImports++;
-        } catch (error) {
-          result.errors.push(`Row error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // 批量处理，减少数据库连接频率
+      const batchSize = 10;
+      for (let i = 0; i < parsedData.length; i += batchSize) {
+        const batch = parsedData.slice(i, i + batchSize);
+        
+        for (const rowData of batch) {
+          try {
+            await this.importSingleRow(rowData, result.summary);
+            result.successfulImports++;
+          } catch (error) {
+            result.errors.push(`Row ${i + 1} error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          }
+        }
+        
+        // 每批次后短暂休眠，减少为50ms
+        if (i + batchSize < parsedData.length) {
+          await this.sleep(50);
         }
       }
 
@@ -212,7 +228,7 @@ export class ROIFileImportService {
   }
 
   private async importSingleRow(
-    rowData: ParsedCampaignData, 
+    rowData: ParsedCampaignData,
     summary: ImportResult['summary']
   ): Promise<void> {
     // 1. 确保App存在，不存在则创建
@@ -241,20 +257,18 @@ export class ROIFileImportService {
     summary.campaignsCreated++;
 
     // 3. 创建ROI数据
-    for (const roi of rowData.roiData) {
-      await this.roiDataService.createROIData({
-        campaignId: campaign.id,
-        daysPeriod: roi.daysPeriod,
-        roiValue: roi.roiValue,
-        isReal0Roi: roi.isReal0Roi
-      });
-      summary.roiDataCreated++;
-    }
+    await this.roiDataService.bulkInsertROIData(rowData.roiData.map(roi => ({
+      campaignId: campaign.id,
+      daysPeriod: roi.daysPeriod,
+      roiValue: roi.roiValue,
+      isReal0Roi: roi.isReal0Roi
+    })));
+    summary.roiDataCreated += rowData.roiData.length;
   }
 
   async validateCSVFormat(fileBuffer: Buffer): Promise<{ valid: boolean; errors: string[] }> {
     const errors: string[] = [];
-    
+
     try {
       const stream = Readable.from(fileBuffer);
       const firstRow = await new Promise<any>((resolve, reject) => {
@@ -272,10 +286,10 @@ export class ROIFileImportService {
       ];
 
       // 获取实际列名并清理头尾的隐藏特殊字符
-      const actualColumns = Object.keys(firstRow).map(col => 
+      const actualColumns = Object.keys(firstRow).map(col =>
         col.replace(/^[\s\uFEFF\xA0\u200B-\u200D\u2060]+|[\s\uFEFF\xA0\u200B-\u200D\u2060]+$/g, '')
       );
-      
+
       for (const requiredCol of requiredColumns) {
         if (!actualColumns.includes(requiredCol)) {
           errors.push(`Missing required column: ${requiredCol}`);

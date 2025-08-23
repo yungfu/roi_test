@@ -1,7 +1,6 @@
 "use client"
 
-import * as React from "react"
-import { useState } from "react"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -10,9 +9,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Upload, Loader2, CheckCircle, AlertCircle } from "lucide-react"
-import { importService, ImportResponse } from "@/services/importService"
+import { ImportResponse, importService } from "@/services/importService"
+import { AlertCircle, CheckCircle, Loader2, Upload } from "lucide-react"
+import * as React from "react"
+import { useState } from "react"
 
 interface ImportDialogProps {
   children: React.ReactNode
@@ -34,34 +34,37 @@ export function ImportDialog({ children }: ImportDialogProps) {
   }
 
   const handleImport = async () => {
-    if (!selectedFile) return
+    if (selectedFile) {
+      setIsLoading(true)
+      setErrorMessage(null)
+      setImportResult(null)
 
-    setIsLoading(true)
-    setErrorMessage(null)
-    setImportResult(null)
-
-    try {
-      console.log('开始导入文件:', selectedFile.name)
-      const result = await importService.importFile(selectedFile)
-      
-      setImportResult(result)
-      
-      if (result.success) {
-        console.log('导入成功:', result.message)
-        // 成功后延迟关闭对话框
-        setTimeout(() => {
-          setIsOpen(false)
-          setSelectedFile(null)
-          setImportResult(null)
-        }, 2000)
-      } else {
-        console.error('导入失败:', result.message)
+      try {
+        console.log('开始导入文件:', selectedFile.name)
+        const result = await importService.importFile(selectedFile)
+        setImportResult(result)
+        
+        if (result.success) {
+          console.log('导入成功:', result.message)
+          // 成功后延迟关闭对话框
+          setTimeout(() => {
+            setIsOpen(false)
+            setSelectedFile(null)
+            setImportResult(null)
+          }, 2000)
+        } else {
+          console.error('导入失败:', result.message)
+        }
+      } catch (error) {
+        console.error('导入过程中发生错误:', error)
+        if (error instanceof Error && error.message.includes('超时')) {
+          setErrorMessage('导入过程超时，但数据可能仍在后台处理中。请稍后刷新页面检查结果。')
+        } else {
+          setErrorMessage(error instanceof Error ? error.message : '导入失败')
+        }
+      } finally {
+        setIsLoading(false)
       }
-    } catch (error) {
-      console.error('导入过程中发生错误:', error)
-      setErrorMessage(error instanceof Error ? error.message : '导入失败')
-    } finally {
-      setIsLoading(false)
     }
   }
 

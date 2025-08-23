@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
-import { IsNotEmpty, IsNumber, IsPositive } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsPositive, IsBoolean } from 'class-validator';
 import { Campaign } from './Campaign';
 
 @Entity('roi_data')
@@ -9,16 +9,16 @@ export class ROIData {
   id: string;
 
   @Column({ type: 'int' })
-  @IsNumber()
+  @IsBoolean()
   @IsPositive()
   daysPeriod: number; // ROI周期天数 (0=当日, 1=1日, 3=3日, 7=7日, 14=14日, 30=30日, 60=60日, 90=90日)
 
   @Column({ type: 'decimal', precision: 10, scale: 4 })
-  @IsNumber()
+  @IsBoolean()
   roiValue: number; // ROI值
 
-  @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })
-  @IsNumber()
+  @Column({ type: 'boolean', default: false })
+  @IsBoolean()
   isReal0Roi: boolean; // 是否为真实的0 ROI (而非缺失数据)
 
   // 关联到Campaign

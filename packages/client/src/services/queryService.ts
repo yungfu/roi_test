@@ -13,11 +13,14 @@ export interface QueryParams extends FilterParams {
 
 // ROI数据项接口
 export interface ROIDataItem {
+  day0?: { value: number; isReal0Roi: boolean };
   day1?: { value: number; isReal0Roi: boolean };
   day3?: { value: number; isReal0Roi: boolean };
   day7?: { value: number; isReal0Roi: boolean };
   day14?: { value: number; isReal0Roi: boolean };
   day30?: { value: number; isReal0Roi: boolean };
+  day60?: { value: number; isReal0Roi: boolean };
+  day90?: { value: number; isReal0Roi: boolean };
 }
 
 // 统计结果项接口

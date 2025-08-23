@@ -118,7 +118,7 @@ export function Chart({
     };
   }, [state.app, state.bidType, state.country, state.yAxisMode, state.dataMode, debouncedQuery]);
 
-  // Y轴配置 - 超细致非均匀刻度计算
+  // Y轴配置 - 确保所有范围都有小刻度的非均匀分布
   const yAxisProps = useMemo(() => {
     if (state.yAxisMode === 'log') {
       return {
@@ -149,71 +149,76 @@ export function Chart({
           return {};
         }
         
-        // 生成非均匀刻度：底部超密集，逐渐稀疏
+        // 生成非均匀刻度：确保底部始终有小刻度
         const generateNonUniformTicks = (min: number, max: number): number[] => {
           const ticks: number[] = [];
           
           // 总是从0开始
           ticks.push(0);
           
-          // 根据最大值确定刻度策略，底部使用更小的刻度
-          if (max <= 0.5) {
-            // 超小数值范围：0, 0.02, 0.05, 0.08, 0.12, 0.18, 0.25, 0.35, 0.5
-            const ultraSmallTicks = [0.02, 0.05, 0.08, 0.12, 0.18, 0.25, 0.35];
-            ultraSmallTicks.forEach(tick => {
-              if (tick <= max) ticks.push(tick);
-            });
-            if (max > 0.35) ticks.push(Math.ceil(max * 20) / 20); // 0.05精度
-          } else if (max <= 1) {
-            // 小数值范围：0, 0.05, 0.1, 0.15, 0.25, 0.4, 0.6, 0.8, 1.0
-            const smallTicks = [0.05, 0.1, 0.15, 0.25, 0.4, 0.6, 0.8];
+          // 无论最大值多大，都要确保底部有小刻度
+          const baseTicks = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5];
+          baseTicks.forEach(tick => {
+            if (tick < max) ticks.push(tick);
+          });
+          
+          // 根据最大值添加更多刻度
+          if (max <= 1) {
+            // 小数值范围：继续添加密集刻度
+            const smallTicks = [0.15, 0.25, 0.4, 0.6, 0.8];
             smallTicks.forEach(tick => {
               if (tick <= max) ticks.push(tick);
             });
             if (max > 0.8) ticks.push(Math.ceil(max * 10) / 10);
           } else if (max <= 3) {
-            // 中小范围：0, 0.1, 0.2, 0.4, 0.7, 1.2, 1.8, 2.5, 3
-            const mediumSmallTicks = [0.1, 0.2, 0.4, 0.7, 1.2, 1.8, 2.5];
+            // 中小范围：0-1密集，1-3渐疏
+            const mediumSmallTicks = [0.7, 1, 1.2, 1.8, 2.5];
             mediumSmallTicks.forEach(tick => {
               if (tick <= max) ticks.push(tick);
             });
-            if (max > 2.5) ticks.push(Math.ceil(max * 2) / 2); // 0.5精度
+            if (max > 2.5) ticks.push(Math.ceil(max * 2) / 2);
           } else if (max <= 10) {
-            // 中等范围：0, 0.2, 0.5, 1, 1.5, 2.5, 4, 6.5, 10
-            const mediumTicks = [0.2, 0.5, 1, 1.5, 2.5, 4, 6.5];
+            // 中等范围：保持0-1密集，然后逐步增大
+            const mediumTicks = [1, 1.5, 2.5, 4, 6.5];
             mediumTicks.forEach(tick => {
               if (tick <= max) ticks.push(tick);
             });
             if (max > 6.5) ticks.push(Math.ceil(max));
-          } else if (max <= 30) {
-            // 较大范围：0, 0.5, 1, 2, 4, 7, 12, 18, 25, 30
-            const largeTicks = [0.5, 1, 2, 4, 7, 12, 18, 25];
+          } else if (max <= 50) {
+            // 较大范围：保持底部精度，中部适度
+            const largeTicks = [1, 2, 4, 7, 12, 18, 25, 35];
             largeTicks.forEach(tick => {
               if (tick <= max) ticks.push(tick);
             });
-            if (max > 25) ticks.push(Math.ceil(max / 5) * 5); // 5的倍数
+            if (max > 35) ticks.push(Math.ceil(max / 5) * 5);
           } else {
-            // 很大范围：0, 1, 2, 5, 10, 20, 35, 55, 80+
+            // 很大范围：仍保持底部小刻度，大值区域使用大间隔
             const veryLargeTicks = [1, 2, 5, 10, 20, 35, 55];
             veryLargeTicks.forEach(tick => {
               if (tick <= max) ticks.push(tick);
             });
             
-            // 如果最大值超过55，添加更大的刻度
+            // 动态添加大刻度
             if (max > 55) {
               let currentTick = 80;
+              const step = max > 200 ? 50 : 30;
               while (currentTick <= max * 1.1) {
                 ticks.push(currentTick);
-                currentTick += 30; // 30的倍数递增
+                currentTick += step;
               }
             }
           }
           
-          return ticks.sort((a, b) => a - b);
+          // 去重并排序
+          const uniqueTicks = Array.from(new Set(ticks)).sort((a, b) => a - b);
+          return uniqueTicks;
         };
         
         const ticks = generateNonUniformTicks(minValue, maxValue);
         const domainMax = Math.max(maxValue * 1.05, ticks[ticks.length - 1]);
+        
+        // 调试信息
+        console.log('Generated ticks:', ticks, 'Max value:', maxValue, 'Domain max:', domainMax);
         
         return {
           domain: [0, domainMax],

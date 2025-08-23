@@ -1,0 +1,32 @@
+{
+  "name": "roianalyze",
+  "version": "1.0.0",
+  "description": "ROI Analyze mono repository project",
+  "private": true,
+  "workspaces": [
+    "packages/backend",
+    "packages/client"
+  ],
+  "scripts": {
+    "dev": "npm run backend:dev & npm run client:dev",
+    "dev:parallel": "npm run backend:dev & npm run client:dev",
+    "dev:workspaces": "npm run dev --workspaces",
+    "build": "npm run build --workspaces",
+    "start": "npm run start --workspaces",
+    "lint": "npm run lint --workspaces",
+    "clean": "rimraf packages/*/dist packages/*/node_modules node_modules",
+    "backend:dev": "npm run dev -w packages/backend",
+    "client:dev": "npm run dev -w packages/client",
+    "backend:build": "npm run build -w packages/backend",
+    "client:build": "npm run build -w packages/client"
+  },
+  "devDependencies": {
+    "rimraf": "^5.0.5",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

@@ -1,4 +1,6 @@
-import { injectable } from 'tsyringe';
+import { inject, injectable } from 'tsyringe';
+import { DataSource } from 'typeorm';
+import { Campaign } from '../entities/Campaign';
 import { AppRepository } from '../repositories/AppRepository';
 import { CampaignRepository } from '../repositories/CampaignRepository';
 import { ROIDataRepository } from '../repositories/ROIDataRepository';
@@ -7,8 +9,6 @@ export interface StatisticsQuery {
   appName?: string;
   bidType?: string;
   country?: string;
-  startDate?: Date;
-  endDate?: Date;
 }
 
 export interface StatisticsResultItem {
@@ -38,44 +38,14 @@ export class StatisticsService {
   constructor(
     private appRepository: AppRepository,
     private campaignRepository: CampaignRepository,
-    private roiDataRepository: ROIDataRepository
+    private roiDataRepository: ROIDataRepository,
+    @inject('DataSource') private dataSource: DataSource
   ) {}
 
   async getStatistics(query: StatisticsQuery): Promise<StatisticsResult> {
-    // 使用现有Repository方法构建查询
-    let campaigns = await this.campaignRepository.findAll();
-
-    // 应用筛选条件
-    if (query.appName) {
-      campaigns = campaigns.filter(campaign => campaign.app.name === query.appName);
-    }
-    if (query.bidType) {
-      campaigns = campaigns.filter(campaign => campaign.bidType === query.bidType);
-    }
-    if (query.country) {
-      campaigns = campaigns.filter(campaign => campaign.country === query.country);
-    }
-    if (query.startDate) {
-      campaigns = campaigns.filter(campaign => 
-        new Date(campaign.placementDate) >= query.startDate!
-      );
-    }
-    if (query.endDate) {
-      campaigns = campaigns.filter(campaign => 
-        new Date(campaign.placementDate) <= query.endDate!
-      );
-    }
-
-    // 排序
-    campaigns.sort((a, b) => {
-      const dateCompare = new Date(b.placementDate).getTime() - new Date(a.placementDate).getTime();
-      if (dateCompare !== 0) return dateCompare;
-      
-      const appCompare = a.app.name.localeCompare(b.app.name);
-      if (appCompare !== 0) return appCompare;
-      
-      return a.country.localeCompare(b.country);
-    });
+    // 使用优化的JOIN查询代替分别从不同repository获取数据
+    // 以Campaign为主表，一次性获取App和ROIData的关联数据，避免N+1查询问题
+    const campaigns = await this.getOptimizedCampaignsWithJoin(query);
 
     // 转换数据格式
     const data: StatisticsResultItem[] = campaigns.map(campaign => {
@@ -105,25 +75,75 @@ export class StatisticsService {
     };
   }
 
-  // 获取可用的筛选选项
+  /**
+   * 使用JOIN查询优化数据获取 - 私有方法
+   * 以Campaign为主表，一次性获取所有关联数据，避免加载所有数据到内存后再筛选
+   * 将筛选条件放在数据库查询层面，提高查询效率
+   */
+  private async getOptimizedCampaignsWithJoin(query: StatisticsQuery): Promise<Campaign[]> {
+    const repository = this.dataSource.getRepository(Campaign);
+    
+    const queryBuilder = repository
+      .createQueryBuilder('campaign')
+      .leftJoinAndSelect('campaign.app', 'app')
+      .leftJoinAndSelect('campaign.roiData', 'roiData')
+      .orderBy('campaign.placementDate', 'DESC')
+      .addOrderBy('app.name', 'ASC')
+      .addOrderBy('campaign.country', 'ASC');
+
+    // 应用筛选条件 - 在数据库层面进行过滤，而不是在内存中过滤
+    if (query.appName) {
+      queryBuilder.andWhere('app.name = :appName', { appName: query.appName });
+    }
+    
+    if (query.bidType) {
+      queryBuilder.andWhere('campaign.bidType = :bidType', { bidType: query.bidType });
+    }
+    
+    if (query.country) {
+      queryBuilder.andWhere('campaign.country = :country', { country: query.country });
+    }
+    
+    return queryBuilder.getMany();
+  }
+
+  // 获取可用的筛选选项 - 也进行了优化
   async getFilterOptions(): Promise<{
     apps: string[];
     countries: string[];
     bidTypes: string[];
   }> {
-    const [apps, campaigns] = await Promise.all([
-      this.appRepository.findAll(),
-      this.campaignRepository.findAll()
+    // 使用聚合查询优化筛选选项获取，避免加载所有数据
+    const repository = this.dataSource.getRepository(Campaign);
+    
+    const [appResults, countryResults, bidTypeResults] = await Promise.all([
+      // 获取所有不重复的应用名称
+      repository
+        .createQueryBuilder('campaign')
+        .leftJoin('campaign.app', 'app')
+        .select('DISTINCT app.name', 'name')
+        .orderBy('app.name', 'ASC')
+        .getRawMany(),
+      
+      // 获取所有不重复的国家
+      repository
+        .createQueryBuilder('campaign')
+        .select('DISTINCT campaign.country', 'country')
+        .orderBy('campaign.country', 'ASC')
+        .getRawMany(),
+      
+      // 获取所有不重复的出价类型
+      repository
+        .createQueryBuilder('campaign')
+        .select('DISTINCT campaign.bidType', 'bidType')
+        .orderBy('campaign.bidType', 'ASC')
+        .getRawMany()
     ]);
 
-    const countries = [...new Set(campaigns.map(c => c.country))].sort();
-    const bidTypes = [...new Set(campaigns.map(c => c.bidType))].sort();
-    const appNames = apps.map(app => app.name).sort();
-
     return {
-      apps: appNames,
-      countries,
-      bidTypes
+      apps: appResults.map(result => result.name).filter(name => name),
+      countries: countryResults.map(result => result.country).filter(country => country),
+      bidTypes: bidTypeResults.map(result => result.bidType).filter(bidType => bidType)
     };
   }
 }

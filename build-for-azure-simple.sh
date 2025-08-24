@@ -142,7 +142,7 @@ cat > "$DEPLOY_DIR/web.config" << 'XMLEOF'
         <add name="X-Content-Type-Options" value="nosniff"/>
         <add name="X-Frame-Options" value="DENY"/>
         <add name="X-XSS-Protection" value="1; mode=block"/>
-        <add name="Content-Security-Policy" value="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; object-src 'none'; base-uri 'self'; form-action 'self'"/>
+        <add name="Content-Security-Policy" value="default-src 'self'; script-src 'self' 'sha256-Q+8tPsjVtiDsjF/Cv8FMOpg2Yg91oKFKDAJat1PPb2g=' 'sha256-xwTjRc/mcyFmqWtqsl4H7T629PPFCCBC9yl5TUpsLD0=' 'sha256-vX3zeUmHUcdfGGqKeQdjX55z/emOluB6k3MnZMNvS0E=' 'sha256-VdLgck/DCsPse/MKQfNKguIwjo2BnjPxeyFaAMWDTEc=' 'sha256-8Mi7HhUouXJZpimpNxLbAnci+L7YNgV+qtmMduxfWRQ=' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; object-src 'none'; base-uri 'self'; form-action 'self'"/>
       </customHeaders>
     </httpProtocol>
     <iisnode node_env="production" />

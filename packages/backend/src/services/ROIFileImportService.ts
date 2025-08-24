@@ -199,8 +199,8 @@ export class ROIFileImportService {
                 isReal0Roi = true;
               } else {
                 // 对于非当日ROI，判断间隔天数+1是否小于等于ROI周期
-                // 例如：1日ROI需要间隔0天+1=1天 <= 1天，即投放当天和第二天都有数据
-                isReal0Roi = (daysDifference + 1) <= roiField.days;
+                // 例如：1日ROI需要间隔0天+1=1天 >= 1天，即投放当天和第二天都有数据
+                isReal0Roi = (daysDifference + 1) >= roiField.days;
               }
             } else {
               // 如果没有提供最大日期，则按原逻辑处理

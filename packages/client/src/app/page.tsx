@@ -43,7 +43,7 @@ function HomeContent() {
       <Filter />
 
       <Chart
-        height={384}
+        height={584}
         title="ROI Trend Analysis"
       />
     </div>

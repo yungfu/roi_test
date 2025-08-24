@@ -63,19 +63,61 @@ app.use('/api/statistics', statisticsRouter);
 
 // Production static file serving
 if (isProduction) {
-  const publicPath = path.join(__dirname, '..', 'public');
+  // Try multiple possible public directory locations
+  const possiblePublicPaths = [
+    path.join(__dirname, '..', 'public'),  // Standard build
+    path.join(__dirname, 'public'),        // Azure deployment
+    path.join(process.cwd(), 'public'),    // Current working directory
+  ];
   
-  console.log(`Serving static files from: ${publicPath}`);
+  let publicPath = null;
+  let indexPath = null;
   
-  // Serve static assets (JS, CSS, images, etc.)
-  app.use('/_next', express.static(path.join(publicPath, '_next')));
-  app.use('/static', express.static(path.join(publicPath, 'static')));
+  // Find the correct public path
+  for (const testPath of possiblePublicPaths) {
+    const testIndexPath = path.join(testPath, 'index.html');
+    try {
+      if (require('fs').existsSync(testIndexPath)) {
+        publicPath = testPath;
+        indexPath = testIndexPath;
+        break;
+      }
+    } catch (err) {
+      // Continue to next path
+    }
+  }
   
-  // Serve other static files
-  app.use(express.static(publicPath, {
-    index: false, // Don't serve index.html automatically
-    maxAge: '1d'  // Cache static assets for 1 day
-  }));
+  if (!publicPath || !indexPath) {
+    console.error('❌ Could not find public directory or index.html');
+    console.error('Searched paths:', possiblePublicPaths);
+    console.error('Current working directory:', process.cwd());
+    console.error('__dirname:', __dirname);
+    
+    // List current directory contents for debugging
+    try {
+      const fs = require('fs');
+      console.error('Contents of current directory:', fs.readdirSync(process.cwd()));
+      console.error('Contents of __dirname:', fs.readdirSync(__dirname));
+      if (fs.existsSync(path.join(__dirname, '..'))) {
+        console.error('Contents of parent directory:', fs.readdirSync(path.join(__dirname, '..')));
+      }
+    } catch (err) {
+      console.error('Error listing directories:', err);
+    }
+  } else {
+    console.log(`✅ Serving static files from: ${publicPath}`);
+    console.log(`✅ Index.html found at: ${indexPath}`);
+    
+    // Serve static assets (JS, CSS, images, etc.)
+    app.use('/_next', express.static(path.join(publicPath, '_next')));
+    app.use('/static', express.static(path.join(publicPath, 'static')));
+    
+    // Serve other static files
+    app.use(express.static(publicPath, {
+      index: false, // Don't serve index.html automatically
+      maxAge: '1d'  // Cache static assets for 1 day
+    }));
+  }
   
   // SPA fallback - serve index.html for all non-API routes
   app.get('*', (req, res) => {
@@ -84,11 +126,23 @@ if (isProduction) {
       return res.status(404).json({ error: 'API route not found' });
     }
     
-    const indexPath = path.join(publicPath, 'index.html');
+    if (!indexPath) {
+      console.error('❌ index.html not found, serving error response');
+      return res.status(500).json({ 
+        error: 'Frontend not available',
+        message: 'Static files not found on server'
+      });
+    }
+    
     res.sendFile(indexPath, (err) => {
       if (err) {
-        console.error('Error serving index.html:', err);
-        res.status(500).json({ error: 'Failed to serve frontend' });
+        console.error('❌ Error serving index.html:', err);
+        console.error('Attempted path:', indexPath);
+        res.status(500).json({ 
+          error: 'Failed to serve frontend',
+          details: err.message,
+          path: indexPath
+        });
       }
     });
   });

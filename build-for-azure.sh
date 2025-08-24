@@ -8,27 +8,64 @@ PROJECT_ROOT="$SCRIPT_DIR"
 
 echo "📁 Project root: $PROJECT_ROOT"
 
-# 运行标准生产构建
-./build-for-production.sh
+# 设置生产环境
+export NODE_ENV=production
 
-if [ $? -ne 0 ]; then
-    echo "❌ Production build failed!"
+# 设置路径变量
+CLIENT_DIR="$PROJECT_ROOT/packages/client"
+BACKEND_DIR="$PROJECT_ROOT/packages/backend"
+DEPLOY_DIR="$PROJECT_ROOT/deploy"
+
+# 清理之前的构建
+echo "�� Cleaning previous builds..."
+rm -rf "$CLIENT_DIR/.next" "$CLIENT_DIR/out"
+rm -rf "$BACKEND_DIR/dist" "$BACKEND_DIR/public"
+rm -rf "$DEPLOY_DIR"
+
+# 构建前端
+echo "🏗️ Building Next.js project..."
+cd "$CLIENT_DIR"
+npm run build
+
+if [ ! -d "$CLIENT_DIR/out" ]; then
+    echo "❌ Frontend build failed!"
     exit 1
 fi
 
-# 创建 Azure 部署包
+echo "✅ Frontend build successful!"
+
+# 构建后端
+echo "🏗️ Building backend..."
+cd "$BACKEND_DIR"
+npm run build
+
+if [ ! -d "$BACKEND_DIR/dist" ]; then
+    echo "❌ Backend build failed!"
+    exit 1
+fi
+
+echo "✅ Backend build successful!"
+
+# 创建部署目录
 echo "📦 Creating Azure deployment package..."
-DEPLOY_DIR="$PROJECT_ROOT/deploy"
-rm -rf "$DEPLOY_DIR"
 mkdir -p "$DEPLOY_DIR"
 
-# 复制构建文件
-echo "📂 Copying build files..."
-cp -r "$PROJECT_ROOT/packages/backend/dist" "$DEPLOY_DIR/"
-cp -r "$PROJECT_ROOT/packages/backend/public" "$DEPLOY_DIR/"
+# 复制后端构建文件
+cp -r "$BACKEND_DIR/dist" "$DEPLOY_DIR/"
 
-# 使用优化的 package.json
-echo "📄 Using optimized package.json for Azure..."
+# 创建 public 目录并复制前端静态文件
+mkdir -p "$DEPLOY_DIR/public"
+cp -r "$CLIENT_DIR/out"/* "$DEPLOY_DIR/public/"
+
+# 验证静态文件复制
+if [ ! -f "$DEPLOY_DIR/public/index.html" ]; then
+    echo "❌ Failed to copy frontend files!"
+    exit 1
+fi
+
+echo "✅ Static files copied to deployment package!"
+
+# 复制 Azure 特定的 package.json
 cp "$PROJECT_ROOT/azure-package.json" "$DEPLOY_DIR/package.json"
 
 # 复制环境配置示例
@@ -47,6 +84,29 @@ if (process.env.PORT) {
     process.env.PORT = process.env.PORT;
 } else {
     process.env.PORT = 8080;
+}
+
+console.log('Azure deployment starting...');
+console.log('Current working directory:', process.cwd());
+console.log('Server file location:', __dirname);
+
+// List contents for debugging
+try {
+    const fs = require('fs');
+    console.log('Contents of current directory:', fs.readdirSync(process.cwd()));
+    if (fs.existsSync('./public')) {
+        console.log('Public directory exists');
+        console.log('Public directory contents:', fs.readdirSync('./public').slice(0, 10));
+    } else {
+        console.log('❌ Public directory not found');
+    }
+    if (fs.existsSync('./dist')) {
+        console.log('Dist directory exists');
+    } else {
+        console.log('❌ Dist directory not found');
+    }
+} catch (err) {
+    console.error('Error listing directories:', err);
 }
 
 // Load the main application
@@ -119,14 +179,19 @@ WEBEOF
 echo "📊 Azure deployment package:"
 du -sh "$DEPLOY_DIR"/*
 
-echo "📋 Package structure:"
-find "$DEPLOY_DIR" -type f -name "*.js" -o -name "*.html" -o -name "*.json" | head -15
+echo "📋 Deployment package structure:"
+echo "├── dist/ (backend files)"
+echo "├── public/ (frontend files)"
+echo "├── server.js (Azure startup script)"
+echo "├── web.config (IIS configuration)"
+echo "├── package.json (dependencies)"
+echo "└── .env.production.example (config template)"
 
 echo ""
 echo "🎉 Azure deployment package ready!"
-echo "📁 Package location: $DEPLOY_DIR"
+echo "📁 Deployment files: $DEPLOY_DIR"
 echo ""
-echo "📝 Next steps:"
-echo "   1. The package is ready for GitHub Actions deployment"
-echo "   2. Make sure to set your Azure environment variables in GitHub Secrets"
-echo "   3. Update the resource group name in the GitHub Action"
+echo "🚀 Next steps:"
+echo "   1. Upload the 'deploy' directory contents to Azure"
+echo "   2. Set environment variables in Azure App Service"
+echo "   3. Azure will automatically run 'npm install' and start the app"

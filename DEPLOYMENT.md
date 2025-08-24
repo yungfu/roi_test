@@ -82,6 +82,9 @@ DB_DATABASE=your_db_name
 # CORS配置（可选，生产环境中前后端同域名时）
 CORS_ORIGIN=https://yourdomain.com
 ```
+### 3. 数据库安装和设置
+
+
 
 ### 4. 启动服务
 

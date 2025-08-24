@@ -5,10 +5,9 @@ export interface FilterParams {
     country?: string;
 }
 
-// 查询参数接口
+// 查询参数接口（只保留查询相关参数）
 export interface QueryParams extends FilterParams {
-    isLog?: boolean;
-    isAverage?: boolean;
+    // 移除分析相关参数，只保留查询相关参数
 }
 
 // ROI数据项接口
@@ -54,7 +53,7 @@ class QueryService {
     private cacheTimeout = 60 * 5000; // 5分钟缓存时间
 
     /**
-     * 生成缓存键
+     * 生成缓存键（只基于查询参数）
      */
     private generateCacheKey(params: QueryParams): string {
         const queryString = new URLSearchParams();
@@ -62,8 +61,6 @@ class QueryService {
         if (params.appName) queryString.set('appName', params.appName);
         if (params.bidType) queryString.set('bidType', params.bidType);
         if (params.country) queryString.set('country', params.country);
-        if (params.isLog) queryString.set('isLog', params.isLog.toString());
-        if (params.isAverage) queryString.set('isAverage', params.isAverage.toString());
 
         return `query_cache_${queryString.toString()}`;
     }
@@ -111,91 +108,6 @@ class QueryService {
     }
 
     /**
-     * 对数值转换为对数
-     */
-    private applyLogTransform(data: StatisticsResultItem[]): StatisticsResultItem[] {
-        return data.map(item => ({
-            ...item,
-            installCount: Math.log10(Math.max(item.installCount, 1)), // 避免log(0)
-            roi: {
-                day1: item.roi.day1 ? {
-                    ...item.roi.day1,
-                    value: Math.log10(Math.max(item.roi.day1.value, 0.001)) // 避免log(0)
-                } : undefined,
-                day3: item.roi.day3 ? {
-                    ...item.roi.day3,
-                    value: Math.log10(Math.max(item.roi.day3.value, 0.001))
-                } : undefined,
-                day7: item.roi.day7 ? {
-                    ...item.roi.day7,
-                    value: Math.log10(Math.max(item.roi.day7.value, 0.001))
-                } : undefined,
-                day14: item.roi.day14 ? {
-                    ...item.roi.day14,
-                    value: Math.log10(Math.max(item.roi.day14.value, 0.001))
-                } : undefined,
-                day30: item.roi.day30 ? {
-                    ...item.roi.day30,
-                    value: Math.log10(Math.max(item.roi.day30.value, 0.001))
-                } : undefined,
-            }
-        }));
-    }
-
-    /**
-     * 计算平均值（当前日期和前两天的平均值）
-     */
-    private applyAverageTransform(data: StatisticsResultItem[]): StatisticsResultItem[] {
-        // 按日期排序
-        const sortedData = [...data].sort((a, b) =>
-            new Date(a.placementDate).getTime() - new Date(b.placementDate).getTime()
-        );
-
-        return sortedData.map((item, index) => {
-            // 获取当前项和前两天的数据
-            const currentIndex = index;
-            const itemsToAverage = [
-                sortedData[currentIndex]
-            ].filter(Boolean);
-            const count = 7; // 包括当前项在内的天数
-            let j = 1;
-            while (j < count && (currentIndex - j) >= 0) {
-                itemsToAverage.push(sortedData[currentIndex - j]);
-                j++;
-            }
-
-            // 计算安装数的平均值
-            const avgInstallCount = itemsToAverage.reduce((sum, item) => sum + item.installCount, 0) / itemsToAverage.length;
-
-            // 计算ROI的平均值
-            const avgRoi: ROIDataItem = {};
-
-            (['day0', 'day1', 'day3', 'day7', 'day14', 'day30', 'day60', 'day90'] as const).forEach(dayKey => {
-                const values = itemsToAverage
-                    .map(item => item.roi[dayKey]?.value)
-                    .filter((value): value is number => 
-                        value !== undefined && (value > 0 || item.roi[dayKey]?.isReal0Roi === true)); // 只包含大于0或标记为真实0的值;
-
-                if (values.length > 0) {
-                    const avgValue = values.reduce((sum, value) => sum + value, 0) / values.length;
-                    const originalItem = item.roi[dayKey];
-
-                    avgRoi[dayKey] = {
-                        value: avgValue,
-                        isReal0Roi: originalItem?.isReal0Roi || false
-                    };
-                }
-            });
-
-            return {
-                ...item,
-                installCount: avgInstallCount,
-                roi: avgRoi
-            };
-        });
-    }
-
-    /**
      * 从API获取数据
      */
     private async fetchFromAPI(filterParams: FilterParams): Promise<QueryResponse> {
@@ -227,7 +139,7 @@ class QueryService {
     }
 
     /**
-     * 主查询方法
+     * 主查询方法（只负责数据查询和缓存）
      */
     async query(params: QueryParams): Promise<QueryResponse> {
         const cacheKey = this.generateCacheKey(params);
@@ -236,24 +148,7 @@ class QueryService {
         const cachedData = this.getFromCache(cacheKey);
         if (cachedData) {
             console.log('Data loaded from cache');
-
-            // 应用转换函数
-            let processedData = cachedData.data.data;
-
-              if (params.isLog) {
-                // processedData = this.applyLogTransform(processedData);
-              }
-
-            if (params.isAverage) {
-                processedData = this.applyAverageTransform(processedData);
-            }
-
-            return {
-                ...cachedData,
-                data: {
-                    data: processedData
-                }
-            };
+            return cachedData;
         }
 
         // 从API获取数据
@@ -264,23 +159,7 @@ class QueryService {
         // 保存原始数据到缓存
         this.saveToCache(cacheKey, apiResponse);
 
-        // 应用转换函数
-        let processedData = apiResponse.data.data;
-
-        if (params.isLog) {
-            // processedData = this.applyLogTransform(processedData);
-        }
-
-        if (params.isAverage) {
-            processedData = this.applyAverageTransform(processedData);
-        }
-
-        return {
-            ...apiResponse,
-            data: {
-                data: processedData
-            }
-        };
+        return apiResponse;
     }
 
     /**

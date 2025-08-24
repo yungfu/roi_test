@@ -5,7 +5,19 @@ import { useContext, useEffect, useMemo, useState } from 'react'
 import { CartesianGrid, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { QueryContext } from '../contexts/queryContext'
 import { queryService, StatisticsResultItem } from '../services/queryService'
-import { analyzeService, AnalyzedROIData } from '../services/analyzeService'
+
+// ROI数据接口
+interface ROIData {
+  placementDate: string;
+  day0?: number;
+  day1?: number;
+  day3?: number;
+  day7?: number;
+  day14?: number;
+  day30?: number;
+  day60?: number;
+  day90?: number;
+}
 
 interface ChartProps {
   height?: number | string
@@ -29,16 +41,35 @@ export function Chart({
   title = "ROI趋势分析"
 }: ChartProps) {
   const { state } = useContext(QueryContext)!;
-  
-  // 分离查询数据和图表数据
-  const [queryData, setQueryData] = useState<StatisticsResultItem[]>([]);
-  const [chartData, setChartData] = useState<AnalyzedROIData[]>([]);
+  const [chartData, setChartData] = useState<ROIData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // 新增状态：记录每条线的显示/隐藏状态
   const [hiddenLines, setHiddenLines] = useState<Set<string>>(new Set());
 
-  // 创建防抖的查询函数（只负责数据查询）
+  // 将查询结果转换为图表数据
+  const transformData = (data: StatisticsResultItem[]): ROIData[] => {
+    return data.map(item => {
+      const roiData: ROIData = {
+        placementDate: item.placementDate,
+      };
+
+      // 提取所有ROI日期数据
+      ROI_DAYS.forEach(({ key }) => {
+        const roiValue = item.roi[key];
+        if (roiValue && typeof roiValue.value === 'number'
+          && (roiValue.value > 0 || roiValue.isReal0Roi)) {
+          roiData[key] = roiValue.value;
+        } else {
+          console.log(`Missing or invalid ROI for ${key} on ${item.placementDate}:`, roiValue);
+        }
+      });
+
+      return roiData;
+    });
+  };
+
+  // 创建防抖的查询函数
   const debouncedQuery = useMemo(
     () => debounce(async (queryParams: any) => {
       setIsLoading(true);
@@ -50,10 +81,17 @@ export function Chart({
           appName: queryParams.app,
           bidType: queryParams.bidType,
           country: queryParams.country,
+          // isLog: queryParams.yAxisMode === 'log',
+          isAverage: queryParams.dataMode === 'average',
         });
 
         if (response.success) {
-          setQueryData(response.data.data);
+          const transformedData = transformData(response.data.data);
+          // 按日期排序
+          transformedData.sort((a, b) =>
+            new Date(a.placementDate).getTime() - new Date(b.placementDate).getTime()
+          );
+          setChartData(transformedData);
         } else {
           setError(response.message || '查询失败');
         }
@@ -67,12 +105,13 @@ export function Chart({
     []
   );
 
-  // 监听查询相关的state变化并执行查询
+  // 监听state变化并执行查询
   useEffect(() => {
     const queryParams = {
       app: state.app,
       bidType: state.bidType,
       country: state.country,
+      dataMode: state.dataMode,
     };
 
     debouncedQuery(queryParams);
@@ -81,25 +120,7 @@ export function Chart({
     return () => {
       debouncedQuery.cancel();
     };
-  }, [state.app, state.bidType, state.country, debouncedQuery]);
-
-  // 根据queryData和dataMode计算chartData
-  useEffect(() => {
-    if (queryData.length === 0) {
-      setChartData([]);
-      return;
-    }
-
-    try {
-      const analyzedData = analyzeService.analyze(queryData, {
-        dataMode: state.dataMode === 'average' ? 'average' : 'raw'
-      });
-      setChartData(analyzedData);
-    } catch (err) {
-      console.error('Analysis error:', err);
-      setError('数据分析出错');
-    }
-  }, [queryData, state.dataMode]);
+  }, [state.app, state.bidType, state.country, state.dataMode, debouncedQuery]);
 
   // Y轴配置 - 等间距刻度
   const yAxisProps = useMemo(() => {
@@ -114,7 +135,7 @@ export function Chart({
     return {      
       tickFormatter: (value: number) => `${value}%`
     };
-  }, [state.yAxisMode]);
+  }, [state.yAxisMode, chartData]);
 
   // 自定义Tooltip
   const CustomTooltip = ({ active, payload, label }: any) => {

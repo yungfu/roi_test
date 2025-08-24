@@ -32,7 +32,6 @@ export function Chart({
   
   // 分离查询数据和图表数据
   const [queryData, setQueryData] = useState<StatisticsResultItem[]>([]);
-  const [chartData, setChartData] = useState<AnalyzedROIData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // 新增状态：记录每条线的显示/隐藏状态
@@ -83,21 +82,21 @@ export function Chart({
     };
   }, [state.app, state.bidType, state.country, debouncedQuery]);
 
-  // 根据queryData和dataMode计算chartData
-  useEffect(() => {
+  // 使用useMemo计算chartData
+  const chartData = useMemo(() => {
     if (queryData.length === 0) {
-      setChartData([]);
-      return;
+      return [];
     }
 
     try {
       const analyzedData = analyzeService.analyze(queryData, {
         dataMode: state.dataMode === 'average' ? 'average' : 'raw'
       });
-      setChartData(analyzedData);
+      return analyzedData;
     } catch (err) {
       console.error('Analysis error:', err);
       setError('数据分析出错');
+      return [];
     }
   }, [queryData, state.dataMode]);
 

@@ -75,9 +75,9 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_2745AF7D020942AAAFA9910B5A02CC55 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_5A77C56D428448B98B20C80D6D7423BF }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_C1ECF9523440437BA0E5FF9600D0CF7B }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_5FE90FB5B9AC4A8F8EB40D0D63E6E5EA }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_7AC8780C6F9E42C481AA94816382807D }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_8F4035DFB0BF47AB933E8A73E7A445FE }}
 
       # Uncomment and configure the following step with your actual resource group name
       # - name: Configure Azure Web App settings

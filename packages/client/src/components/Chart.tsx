@@ -164,7 +164,7 @@ export function Chart({
     return (
       <div className="flex flex-wrap justify-center gap-4 mt-4">
         {ROI_DAYS.map((entry: any, index: number) => {
-          const isHidden = hiddenLines.has(entry.dataKey);
+          const isHidden = hiddenLines.has(entry.key);
           // 根据dataMode动态生成Label文字
           const labelText = state.dataMode === "average" 
             ? `${entry.name}(7日移动平均)` 
@@ -174,7 +174,7 @@ export function Chart({
             <div
               key={`legend-${index}`}
               className="flex items-center cursor-pointer select-none hover:bg-gray-100 px-2 py-1 rounded"
-              onClick={() => handleLegendClick(entry.name)}
+              onClick={() => handleLegendClick(entry.key)}
             >
               <div
                 className="w-3 h-3 mr-2"

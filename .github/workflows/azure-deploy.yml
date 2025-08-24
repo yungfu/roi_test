@@ -66,6 +66,10 @@ jobs:
           ls -la dist/ || echo "No dist directory"
           echo "=== Public directory ==="
           ls -la public/ || echo "No public directory"
+          echo "=== Check for server.js ==="
+          ls -la server.js || echo "No server.js file"
+          echo "=== Check for package.json ==="
+          ls -la package.json || echo "No package.json file"
 
       - name: Install production dependencies
         run: |

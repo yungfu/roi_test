@@ -44,6 +44,8 @@ export function Chart({
   const [chartData, setChartData] = useState<ROIData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // 新增状态：记录每条线的显示/隐藏状态
+  const [hiddenLines, setHiddenLines] = useState<Set<string>>(new Set());
 
   // 将查询结果转换为图表数据
   const transformData = (data: StatisticsResultItem[]): ROIData[] => {
@@ -152,6 +154,57 @@ export function Chart({
     return null;
   };
 
+  // 处理Legend点击事件
+  const handleLegendClick = (dataKey: string) => {
+    setHiddenLines(prev => {
+      const newHiddenLines = new Set(prev);
+      if (newHiddenLines.has(dataKey)) {
+        newHiddenLines.delete(dataKey);
+      } else {
+        newHiddenLines.add(dataKey);
+      }
+      return newHiddenLines;
+    });
+  };
+
+  // 自定义Legend渲染
+  const CustomLegend = (props: any) => {
+    const { payload } = props;
+    
+    return (
+      <div className="flex flex-wrap justify-center gap-4 mt-4">
+        {payload.map((entry: any, index: number) => {
+          const isHidden = hiddenLines.has(entry.dataKey);
+          // 根据dataMode动态生成Label文字
+          const labelText = state.dataMode === "average" 
+            ? `${entry.value}(7日移动平均)` 
+            : entry.value;
+          
+          return (
+            <div
+              key={`legend-${index}`}
+              className="flex items-center cursor-pointer select-none hover:bg-gray-100 px-2 py-1 rounded"
+              onClick={() => handleLegendClick(entry.dataKey)}
+            >
+              <div
+                className="w-3 h-3 mr-2"
+                style={{
+                  backgroundColor: isHidden ? "#cccccc" : entry.color,
+                  borderRadius: "2px"
+                }}
+              />
+              <span
+                className={`text-sm ${isHidden ? "text-gray-400" : "text-gray-700"}`}
+              >
+                {labelText}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   if (error) {
     return (
       <div className="bg-white p-6 rounded-lg shadow-md border">
@@ -191,7 +244,7 @@ export function Chart({
             />
             <YAxis {...yAxisProps} tick={{ fontSize: 12 }} />
             <Tooltip content={<CustomTooltip />} />
-            <Legend />
+            <Legend content={<CustomLegend />} />
 
             {/* 渲染所有ROI天数的线条 */}
             {ROI_DAYS.map(({ key, name, color }) => (
@@ -205,6 +258,7 @@ export function Chart({
                 connectNulls={false}
                 dot={{ r: 3 }}
                 activeDot={{ r: 5 }}
+                hide={hiddenLines.has(key)}
               />
             ))}
           <ReferenceLine 

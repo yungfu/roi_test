@@ -1,9 +1,10 @@
+import { DarkThemeToggle } from '@/components/DarkThemeToggle'
+import { Button } from '@/components/ui/button'
+import { ImportDialog } from '@/components/ui/import-dialog'
+import { Upload } from 'lucide-react'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import { ImportDialog } from '@/components/ui/import-dialog'
-import { Button } from '@/components/ui/button'
-import { Upload } from 'lucide-react'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -25,12 +26,15 @@ export default function RootLayout({
             <div className="container mx-auto px-4 py-4">
               <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold">ROI Analyze</h1>
-                <ImportDialog>
-                  <Button variant="outline" size="sm" className="flex items-center gap-2">
-                    <Upload className="h-4 w-4" />
-                    导入数据
-                  </Button>
-                </ImportDialog>
+                <div className="flex items-center gap-3">
+                  <DarkThemeToggle />
+                  <ImportDialog>
+                    <Button variant="outline" size="sm" className="flex items-center gap-2">
+                      <Upload className="h-4 w-4" />
+                      导入数据
+                    </Button>
+                  </ImportDialog>
+                </div>
               </div>
             </div>
           </header>

@@ -57,9 +57,9 @@ const SelectWithLabel: React.FC<SelectWithLabelProps> = ({
 }) => {
   return (
     <div className="flex flex-col space-y-1">
-      <label className="text-sm font-medium text-gray-700">{label}</label>
+      <label className="text-sm font-medium text-foreground">{label}</label>
       <Select value={value} onValueChange={onChange} disabled={disabled}>
-        <SelectTrigger className={disabled ? 'bg-gray-100 text-gray-500' : ''}>
+        <SelectTrigger className={disabled ? 'bg-muted text-muted-foreground' : ''}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -90,14 +90,14 @@ const RadioGroupWithLabel: React.FC<RadioGroupWithLabelProps> = ({
 }) => {
   return (
     <div className="flex flex-col space-y-2">
-      <label className="text-sm font-medium text-gray-700">{label}</label>
+      <label className="text-sm font-medium text-foreground">{label}</label>
       <RadioGroup value={value} onValueChange={onChange} className="flex space-x-4">
         {options.map((option) => (
           <div key={option.value} className="flex items-center space-x-2">
             <RadioGroupItem value={option.value} id={option.value} />
             <label 
               htmlFor={option.value}
-              className="text-sm text-gray-700 cursor-pointer"
+              className="text-sm text-foreground cursor-pointer"
             >
               {option.label}
             </label>
@@ -118,7 +118,7 @@ export const Filter: React.FC = () => {
   const [yAxisMode, setYAxisMode] = useYAxisMode()
 
   return (
-    <div className="bg-white rounded-lg shadow-md border p-6 space-y-6">
+    <div className="bg-card rounded-lg shadow-md border border-border p-6 space-y-6">
       {/* 第一行：筛选器 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <SelectWithLabel
@@ -155,7 +155,7 @@ export const Filter: React.FC = () => {
       {/* 第二行：控制器 */}
       <div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className='bg-gray-50 p-4 rounded-md'>
+          <div className='bg-muted p-4 rounded-md'>
             <RadioGroupWithLabel
               label="数据显示模式"
               value={dataMode}
@@ -167,7 +167,7 @@ export const Filter: React.FC = () => {
             />
           </div>
           
-          <div className='bg-gray-50 p-4 rounded-md'>
+          <div className='bg-muted p-4 rounded-md'>
             <RadioGroupWithLabel
               label="Y轴刻度"
               value={yAxisMode}

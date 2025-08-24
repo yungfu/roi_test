@@ -133,7 +133,7 @@ export function Chart({
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-3 border border-gray-200 rounded shadow-lg">
+        <div className="bg-popover text-popover-foreground p-3 border border-border rounded shadow-lg">
           <p className="font-medium">{`日期: ${label}`}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} style={{ color: entry.color }}>
@@ -173,7 +173,7 @@ export function Chart({
           return (
             <div
               key={`legend-${index}`}
-              className="flex items-center cursor-pointer select-none hover:bg-gray-100 px-2 py-1 rounded"
+              className="flex items-center cursor-pointer select-none hover:bg-accent hover:text-accent-foreground px-2 py-1 rounded"
               onClick={() => handleLegendClick(entry.key)}
             >
               <div
@@ -184,7 +184,7 @@ export function Chart({
                 }}
               />
               <span
-                className={`text-sm ${isHidden ? "text-gray-400" : "text-gray-700"}`}
+                className={`text-sm ${isHidden ? "text-muted-foreground" : "text-foreground"}`}
               >
                 {labelText}
               </span>
@@ -194,19 +194,19 @@ export function Chart({
         
         {/* 预测开关Legend */}
         <div
-          className="flex items-center cursor-pointer select-none hover:bg-gray-100 px-2 py-1 rounded border border-gray-300"
+          className="flex items-center cursor-pointer select-none hover:bg-accent hover:text-accent-foreground px-2 py-1 rounded border border-border"
           onClick={() => setDoPrediction(!doPrediction)}
         >
           <div
             className="w-3 h-3 mr-2 border"
             style={{
-              backgroundColor: doPrediction ? "#4CAF50" : "#ffffff",
+              backgroundColor: doPrediction ? "#4CAF50" : "transparent",
               borderColor: "#4CAF50",
               borderRadius: "2px",
               borderWidth: "2px"
             }}
           />
-          <span className={`text-sm font-medium ${doPrediction ? "text-green-700" : "text-gray-700"}`}>
+          <span className={`text-sm font-medium ${doPrediction ? "text-green-600 dark:text-green-400" : "text-foreground"}`}>
             预测线条 {doPrediction ? "(已开启)" : "(已关闭)"}
           </span>
         </div>
@@ -216,12 +216,12 @@ export function Chart({
 
   if (error) {
     return (
-      <div className="bg-white p-6 rounded-lg shadow-md border">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">{title}</h2>
+      <div className="bg-card text-card-foreground p-6 rounded-lg shadow-md border border-border">
+        <h2 className="text-2xl font-bold text-foreground mb-6">{title}</h2>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="text-red-500 text-lg mb-2">❌ 查询失败</div>
-            <div className="text-gray-600">{error}</div>
+            <div className="text-destructive text-lg mb-2">❌ 查询失败</div>
+            <div className="text-muted-foreground">{error}</div>
           </div>
         </div>
       </div>
@@ -229,12 +229,12 @@ export function Chart({
   }
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md border">
+    <div className="bg-card text-card-foreground p-6 rounded-lg shadow-md border border-border">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
+        <h2 className="text-2xl font-bold text-foreground">{title}</h2>
         {isLoading && (
-          <div className="flex items-center text-blue-500">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
+          <div className="flex items-center text-primary">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
             <span className="text-sm">加载中...</span>
           </div>
         )}
@@ -297,7 +297,7 @@ export function Chart({
 
       {chartData.length === 0 && !isLoading && (
         <div className="flex items-center justify-center h-32">
-          <div className="text-gray-500">暂无数据</div>
+          <div className="text-muted-foreground">暂无数据</div>
         </div>
       )}
     </div>

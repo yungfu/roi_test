@@ -24,16 +24,20 @@ function HomeContent() {
   }, [state.dataMode, state.yAxisMode]);
 
   if (!mounted) {
-    return <div>Loading...</div>
+    return (
+      <div className="flex items-center justify-center min-h-[200px]">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">
+        <h1 className="text-4xl font-bold text-foreground mb-4">
           {title}
         </h1>
-        <div className="text-xl text-gray-600 max-w-2xl mx-auto">
+        <div className="text-xl text-muted-foreground max-w-2xl mx-auto">
           <div>{subtitle}</div>
           <div>数据范围：最近90天</div>
         </div>

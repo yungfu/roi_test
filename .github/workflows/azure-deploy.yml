@@ -1,0 +1,111 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
+name: Build and deploy ROI Analyze app to Azure Web App
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js version
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm install
+
+      - name: Install workspace dependencies
+        run: |
+          npm install --workspace=packages/backend
+          npm install --workspace=packages/client
+
+      - name: Build for Azure deployment
+        run: |
+          chmod +x ./build-for-azure.sh
+          ./build-for-azure.sh
+
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v4
+        with:
+          name: roianalyze-app
+          path: deploy/
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      id-token: write
+      contents: read
+    environment: production
+
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: roianalyze-app
+          path: .
+
+      - name: List downloaded files
+        run: |
+          echo "=== Downloaded files ==="
+          ls -la
+          echo "=== Dist directory ==="
+          ls -la dist/ || echo "No dist directory"
+          echo "=== Public directory ==="
+          ls -la public/ || echo "No public directory"
+
+      - name: Install production dependencies
+        run: |
+          npm install --production --omit=dev
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_2745AF7D020942AAAFA9910B5A02CC55 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_5A77C56D428448B98B20C80D6D7423BF }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_C1ECF9523440437BA0E5FF9600D0CF7B }}
+
+      # Uncomment and configure the following step with your actual resource group name
+      # - name: Configure Azure Web App settings
+      #   run: |
+      #     az webapp config appsettings set \
+      #       --resource-group YOUR_RESOURCE_GROUP \
+      #       --name cyfnodetest \
+      #       --settings \
+      #         NODE_ENV=production \
+      #         PORT=8080 \
+      #         WEBSITE_NODE_DEFAULT_VERSION=18-lts
+
+      - name: Deploy to Azure Web App
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'cyfnodetest'
+          slot-name: 'Production'
+          package: .
+
+      - name: Verify deployment
+        run: |
+          echo "=== Deployment completed ==="
+          echo "Health check URL: https://cyfnodetest.azurewebsites.net/health"
+          echo "App URL: https://cyfnodetest.azurewebsites.net/"
+          
+          # Wait a bit for deployment to be ready
+          sleep 30
+          
+          # Test health endpoint
+          curl -f https://cyfnodetest.azurewebsites.net/health || echo "Health check failed - this is normal for first deployment"

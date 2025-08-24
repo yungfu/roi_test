@@ -57,16 +57,21 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: roianalyze-app
-          path: .
+          path: ./deploy
 
-      - name: List downloaded files
+      - name: List downloaded files and prepare for deployment
         run: |
-          echo "=== Downloaded files ==="
-          ls -la
+          echo "=== Downloaded files in deploy directory ==="
+          ls -la deploy/
           echo "=== Dist directory ==="
-          ls -la dist/ || echo "No dist directory"
+          ls -la deploy/dist/ || echo "No dist directory"
           echo "=== Public directory ==="
-          ls -la public/ || echo "No public directory"
+          ls -la deploy/public/ || echo "No public directory"
+          echo "=== Moving files to root for deployment ==="
+          mv deploy/* .
+          rm -rf deploy/
+          echo "=== Final deployment structure ==="
+          ls -la
 
       - name: Install production dependencies
         run: |

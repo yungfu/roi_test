@@ -143,3 +143,6 @@ build/
 # Temporary files
 tmp/
 temp/
+
+# Azure deployment directory
+deploy/

@@ -4,8 +4,8 @@ import { debounce } from 'es-toolkit'
 import { useContext, useEffect, useMemo, useState } from 'react'
 import { CartesianGrid, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { QueryContext } from '../contexts/queryContext'
+import { analyzeService } from '../services/analyzeService'
 import { queryService, StatisticsResultItem } from '../services/queryService'
-import { analyzeService, AnalyzedROIData } from '../services/analyzeService'
 
 interface ChartProps {
   height?: number | string
@@ -24,6 +24,17 @@ const ROI_DAYS = [
   { key: 'day90', name: '90日', color: '#ffc0cb' },
 ] as const;
 
+const PREIDCTION_DAYS = [
+  { key: 'day0Predicted', name: '当日ROI预测', color: '#8884d8' },
+  { key: 'day1Predicted', name: '1日ROI预测', color: '#82ca9d' },
+  { key: 'day3Predicted', name: '3日ROI预测', color: '#ffc658' },
+  { key: 'day7Predicted', name: '7日ROI预测', color: '#ff7300' },
+  { key: 'day14Predicted', name: '14日ROI预测', color: '#8dd1e1' },
+  { key: 'day30Predicted', name: '30日ROI预测', color: '#d084d0' },
+  { key: 'day60Predicted', name: '60日ROI预测', color: '#87d068' },
+  { key: 'day90Predicted', name: '90日ROI预测', color: '#ffc0cb' },
+] as const;
+
 export function Chart({
   height = 400,
   title = "ROI趋势分析"
@@ -36,6 +47,7 @@ export function Chart({
   const [error, setError] = useState<string | null>(null);
   // 新增状态：记录每条线的显示/隐藏状态
   const [hiddenLines, setHiddenLines] = useState<Set<string>>(new Set());
+  const [doPrediction, setDoPrediction] = useState(false);
 
   // 创建防抖的查询函数（只负责数据查询）
   const debouncedQuery = useMemo(
@@ -44,7 +56,6 @@ export function Chart({
       setError(null);
 
       try {
-        console.log('Executing query with params:', queryParams);
         const response = await queryService.query({
           appName: queryParams.app,
           bidType: queryParams.bidType,
@@ -90,15 +101,18 @@ export function Chart({
 
     try {
       const analyzedData = analyzeService.analyze(queryData, {
-        dataMode: state.dataMode === 'average' ? 'average' : 'raw'
+        dataMode: state.dataMode === 'average' ? 'average' : 'raw',
+        doPrediction: doPrediction
       });
+      console.log(doPrediction);
+      console.log('Analyzed data:', analyzedData);
       return analyzedData;
     } catch (err) {
       console.error('Analysis error:', err);
       setError('数据分析出错');
       return [];
     }
-  }, [queryData, state.dataMode]);
+  }, [queryData, state.dataMode, doPrediction]);
 
   // Y轴配置 - 等间距刻度
   const yAxisProps = useMemo(() => {
@@ -146,23 +160,21 @@ export function Chart({
   };
 
   // 自定义Legend渲染
-  const CustomLegend = (props: any) => {
-    const { payload } = props;
-    
+  const CustomLegend = (props: any) => {    
     return (
       <div className="flex flex-wrap justify-center gap-4 mt-4">
-        {payload.map((entry: any, index: number) => {
+        {ROI_DAYS.map((entry: any, index: number) => {
           const isHidden = hiddenLines.has(entry.dataKey);
           // 根据dataMode动态生成Label文字
           const labelText = state.dataMode === "average" 
-            ? `${entry.value}(7日移动平均)` 
-            : entry.value;
+            ? `${entry.name}(7日移动平均)` 
+            : entry.name;
           
           return (
             <div
               key={`legend-${index}`}
               className="flex items-center cursor-pointer select-none hover:bg-gray-100 px-2 py-1 rounded"
-              onClick={() => handleLegendClick(entry.dataKey)}
+              onClick={() => handleLegendClick(entry.name)}
             >
               <div
                 className="w-3 h-3 mr-2"
@@ -179,6 +191,25 @@ export function Chart({
             </div>
           );
         })}
+        
+        {/* 预测开关Legend */}
+        <div
+          className="flex items-center cursor-pointer select-none hover:bg-gray-100 px-2 py-1 rounded border border-gray-300"
+          onClick={() => setDoPrediction(!doPrediction)}
+        >
+          <div
+            className="w-3 h-3 mr-2 border"
+            style={{
+              backgroundColor: doPrediction ? "#4CAF50" : "#ffffff",
+              borderColor: "#4CAF50",
+              borderRadius: "2px",
+              borderWidth: "2px"
+            }}
+          />
+          <span className={`text-sm font-medium ${doPrediction ? "text-green-700" : "text-gray-700"}`}>
+            预测线条 {doPrediction ? "(已开启)" : "(已关闭)"}
+          </span>
+        </div>
       </div>
     );
   };
@@ -236,6 +267,21 @@ export function Chart({
                 connectNulls={false}
                 dot={{ r: 3 }}
                 activeDot={{ r: 5 }}
+                hide={hiddenLines.has(key)}
+              />
+            ))}
+            {doPrediction && PREIDCTION_DAYS.map(({ key, name, color }) => (
+              <Line
+                key={key}
+                type="monotone"
+                dataKey={key}
+                stroke={color}
+                strokeWidth={2}
+                name={name}
+                connectNulls={false}
+                dot={{ r: 3 }} // 粗点
+                activeDot={{ r: 7 }} // 鼠标悬停时更大
+                strokeDasharray="6 8" // 虚线：6px实线，8px间隔，点更粗
                 hide={hiddenLines.has(key)}
               />
             ))}

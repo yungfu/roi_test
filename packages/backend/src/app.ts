@@ -65,9 +65,11 @@ app.use('/api/satistics', statisticsRouter);
 if (isProduction) {
   // Try multiple possible public directory locations
   const possiblePublicPaths = [
-    path.join(__dirname, '..', 'public'),  // Standard build
-    path.join(__dirname, '../', 'public'),        // Azure deployment
-    path.join(process.cwd(), 'public'),    // Current working directory
+    '/home/site/wwwroot/public',                       // Direct Azure path
+    path.join(process.cwd(), '../', '../', 'public'),  // From packages/backend to wwwroot/public
+    path.join(__dirname, '../', '../', '../', 'public'), // From dist up to wwwroot/public
+    path.join(__dirname, '../', 'public'),              // Standard: dist/../public
+    path.join(process.cwd(), 'public'),                // Current working directory
   ];
   
   let publicPath = null;

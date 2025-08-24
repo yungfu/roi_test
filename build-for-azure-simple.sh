@@ -68,12 +68,13 @@ cat > "$DEPLOY_DIR/package.json" << 'PKGEOF'
     "cors": "^2.8.5",
     "csv-parser": "^3.2.0",
     "dotenv": "^16.3.1",
-    "express": "^4.21.0",
-    "helmet": "^8.0.0",
+    "express": "^4.18.2",
+    "helmet": "^7.1.0",
     "morgan": "^1.10.0",
-    "multer": "^1.4.5",
+    "multer": "^2.0.2",
     "pg": "^8.11.3",
     "reflect-metadata": "^0.1.13",
+    "tsyringe": "^4.8.0",
     "typeorm": "^0.3.17"
   },
   "engines": {

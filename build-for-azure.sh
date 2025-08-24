@@ -51,7 +51,7 @@ echo "📦 Creating Azure deployment package..."
 mkdir -p "$DEPLOY_DIR"
 
 # 复制后端构建文件到 dist 目录
-cp -r "$BACKEND_DIR/dist"/* "$DEPLOY_DIR/"
+cp -r "$BACKEND_DIR/dist" "$DEPLOY_DIR/"
 
 # 创建 public 目录并复制前端静态文件
 mkdir -p "$DEPLOY_DIR/public"
@@ -115,7 +115,7 @@ try {
 
 // Load the main application
 console.log('🔄 Loading main application...');
-require('./index.js');
+require('./dist/index.js');
 SERVEREOF
 
 # 创建 web.config for Azure App Service

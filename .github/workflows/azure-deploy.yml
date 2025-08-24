@@ -57,33 +57,38 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: roianalyze-app
-          path: ./deploy
+          path: .
 
-      - name: List downloaded files and prepare for deployment
+      - name: List downloaded files
         run: |
-          echo "=== Downloaded files in deploy directory ==="
-          ls -la deploy/
-          echo "=== Dist directory ==="
-          ls -la deploy/dist/ || echo "No dist directory"
-          echo "=== Public directory ==="
-          ls -la deploy/public/ || echo "No public directory"
-          echo "=== Moving files to root for deployment ==="
-          mv deploy/* .
-          rm -rf deploy/
-          echo "=== Final deployment structure ==="
+          echo "=== Downloaded files ==="
           ls -la
+          echo "=== Dist directory ==="
+          ls -la dist/ || echo "No dist directory"
+          echo "=== Public directory ==="
+          ls -la public/ || echo "No public directory"
 
       - name: Install production dependencies
         run: |
           npm install --production --omit=dev
 
-      - name: Login to Azure (OIDC)
+      - name: Login to Azure
         uses: azure/login@v2
         with:
-          auth-type: 'IDENTITY'
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_2745AF7D020942AAAFA9910B5A02CC55 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_5A77C56D428448B98B20C80D6D7423BF }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_C1ECF9523440437BA0E5FF9600D0CF7B }}
+
+      # Uncomment and configure the following step with your actual resource group name
+      # - name: Configure Azure Web App settings
+      #   run: |
+      #     az webapp config appsettings set \
+      #       --resource-group YOUR_RESOURCE_GROUP \
+      #       --name cyfnodetest \
+      #       --settings \
+      #         NODE_ENV=production \
+      #         PORT=8080 \
+      #         WEBSITE_NODE_DEFAULT_VERSION=18-lts
 
       - name: Deploy to Azure Web App
         id: deploy-to-webapp

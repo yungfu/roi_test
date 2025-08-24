@@ -54,3 +54,12 @@ Legend区域显示上边的8中ROI数据的Legend，以及预测值Legend；
 **预测值**Legend点击时，会显示或者隐藏基于当前数据的，对未来6日的ROI走势的预测；
 
 Legend的Label在**数据模式**中勾选**移动平均值**时，会显示为**x日(7日均值)**
+
+
+### 图例
+
+1. 控制/过滤示意图
+![控制器](./images/roi_controller.png)
+
+2. 趋势线示意图
+![趋势图](./images/roi_chart.png)

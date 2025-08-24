@@ -83,6 +83,12 @@ DB_DATABASE=your_db_name
 CORS_ORIGIN=https://yourdomain.com
 ```
 ### 3. 数据库初始化
+可以通过code first自动生成；
+生产环境执行如下：
+npx typeorm-ts-node-commonjs migration:generate packages/backend/src/migrations/InitialSchema -d packages/backend/src/config/database.ts
+npx typeorm-ts-node-commonjs migration:run -d packages/backend/src/config/database.ts
+如果需要回滚：
+npx typeorm-ts-node-commonjs migration:revert -d packages/backend/src/config/database.ts
 
 
 ### 4. 启动服务

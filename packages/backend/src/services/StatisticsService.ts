@@ -61,7 +61,7 @@ export class StatisticsService {
       });
 
       return {
-        placementDate: campaign.placementDate, // 格式化为 YYYY-MM-DD
+        placementDate: campaign.placementDate.toISOString().split('T')[0], // 格式化为 YYYY-MM-DD
         appName: campaign.app.name,
         country: campaign.country,
         bidType: campaign.bidType,

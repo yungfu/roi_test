@@ -3,10 +3,10 @@ import { Button } from '@/components/ui/button'
 import { ImportDialog } from '@/components/ui/import-dialog'
 import { Upload } from 'lucide-react'
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'] })
+
 
 export const metadata: Metadata = {
   title: 'ROI Analyze',
@@ -20,7 +20,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className="font-sans">
         <div className="min-h-screen bg-background">
           <header className="border-b">
             <div className="container mx-auto px-4 py-4">

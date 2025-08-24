@@ -67,7 +67,7 @@ if (isProduction) {
   const possiblePublicPaths = [
     '/home/site/wwwroot/public',                       // Direct Azure path
     path.join(process.cwd(), '../', '../', 'public'),  // From packages/backend to wwwroot/public
-    path.join(__dirname, '../', '../', '../', 'public'), // From dist up to wwwroot/public
+    path.join(process.cwd(), '../', '../', 'public'), // From dist up to wwwroot/public
     path.join(__dirname, '../', 'public'),              // Standard: dist/../public
     path.join(process.cwd(), 'public'),                // Current working directory
   ];

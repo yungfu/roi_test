@@ -61,7 +61,7 @@ export class StatisticsService {
       });
 
       return {
-        placementDate: campaign.placementDate.toISOString().split('T')[0], // 格式化为 YYYY-MM-DD
+        placementDate: this.formatPlacementDate(campaign.placementDate), // 格式化为 YYYY-MM-DD
         appName: campaign.app.name,
         country: campaign.country,
         bidType: campaign.bidType,
@@ -73,6 +73,32 @@ export class StatisticsService {
     return {
       data
     };
+  }
+
+  /**
+   * 安全地格式化投放日期为 YYYY-MM-DD 格式
+   * 处理 placementDate 可能为 Date 对象或字符串的情况
+   */
+  private formatPlacementDate(placementDate: Date | string): string {
+    if (typeof placementDate === 'string') {
+      // 如果已经是字符串，检查是否为有效的日期格式
+      const date = new Date(placementDate);
+      if (isNaN(date.getTime())) {
+        // 如果是无效日期，返回原字符串（假设已经是正确格式）
+        return placementDate.split('T')[0]; // 去掉时间部分（如果有的话）
+      }
+      return date.toISOString().split('T')[0];
+    } else if (placementDate instanceof Date) {
+      // 如果是 Date 对象，直接格式化
+      return placementDate.toISOString().split('T')[0];
+    } else {
+      // 如果都不是，尝试转换为 Date 对象
+      const date = new Date(placementDate);
+      if (isNaN(date.getTime())) {
+        throw new Error(`Invalid placementDate format: ${placementDate}`);
+      }
+      return date.toISOString().split('T')[0];
+    }
   }
 
   /**

@@ -59,7 +59,7 @@ app.get('/api', (req, res) => {
 app.use('/api/roifiles', roiFilesRouter);
 
 // Statistics routes  
-app.use('/api/statistics', statisticsRouter);
+app.use('/api/satistics', statisticsRouter);
 
 // Production static file serving
 if (isProduction) {

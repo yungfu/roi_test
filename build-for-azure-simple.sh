@@ -91,3 +91,63 @@ ls -la "$DEPLOY_DIR"
 
 echo ""
 echo "🚀 To deploy: upload contents of '$DEPLOY_DIR' to Azure"
+
+# 创建 web.config for Azure App Service with CSP headers
+echo "📄 Creating web.config for Azure..."
+cat > "$DEPLOY_DIR/web.config" << 'XMLEOF'
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <system.webServer>
+    <handlers>
+      <add name="iisnode" path="index.js" verb="*" modules="iisnode"/>
+    </handlers>
+    <rewrite>
+      <rules>
+        <!-- Handle API routes -->
+        <rule name="api" stopProcessing="true">
+          <match url="^api/.*" />
+          <action type="Rewrite" url="index.js"/>
+        </rule>
+        <!-- Handle health check -->
+        <rule name="health" stopProcessing="true">
+          <match url="^health$" />
+          <action type="Rewrite" url="index.js"/>
+        </rule>
+        <!-- Handle static files -->
+        <rule name="StaticFiles" stopProcessing="true">
+          <match url="^public/.*" />
+          <conditions>
+            <add input="{REQUEST_FILENAME}" matchType="IsFile" />
+          </conditions>
+          <action type="None" />
+        </rule>
+        <!-- SPA fallback for all other routes -->
+        <rule name="SPA" stopProcessing="true">
+          <match url=".*" />
+          <conditions logicalGrouping="MatchAll">
+            <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
+            <add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="true" />
+          </conditions>
+          <action type="Rewrite" url="index.js"/>
+        </rule>
+      </rules>
+    </rewrite>
+    <security>
+      <requestFiltering>
+        <requestLimits maxAllowedContentLength="52428800" />
+      </requestFiltering>
+    </security>
+    <httpProtocol>
+      <customHeaders>
+        <add name="X-Content-Type-Options" value="nosniff"/>
+        <add name="X-Frame-Options" value="DENY"/>
+        <add name="X-XSS-Protection" value="1; mode=block"/>
+        <add name="Content-Security-Policy" value="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; object-src 'none'; base-uri 'self'; form-action 'self'"/>
+      </customHeaders>
+    </httpProtocol>
+    <iisnode node_env="production" />
+  </system.webServer>
+</configuration>
+XMLEOF
+
+echo "✅ web.config created with CSP headers"

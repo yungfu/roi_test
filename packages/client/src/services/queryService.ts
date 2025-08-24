@@ -50,7 +50,7 @@ interface CacheItem {
 
 class QueryService {
     private apiBaseUrl = '/api';
-    private cacheTimeout = 60 * 5000; // 5分钟缓存时间
+    private cacheTimeout = 1000;//60 * 5000; // 5分钟缓存时间
 
     /**
      * 生成缓存键（只基于查询参数）
